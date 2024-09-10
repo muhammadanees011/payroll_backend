@@ -177,7 +177,7 @@ class HMRCRealTimeInformationController extends Controller
         // Send and poll for response
 
         $request = $hmrc_gateway->request_submit($hmrc_rti);
-        // print_r($request);
+        // dd($request);
 
         $k = 0;
 

@@ -17,21 +17,20 @@ return new class extends Migration
             $table->string('legal_structure');
             $table->string('post_code');
             $table->string('address_line_1');
-            $table->string('address_line_2');
+            $table->string('address_line_2')->nullable();
             $table->string('city');
-            $table->string('country');
+            $table->string('country')->nullable();
             $table->string('registration_number')->nullable();
-            $table->string('holiday_year_start_month');
+            $table->string('holiday_year_start_month')->nullable();
             $table->string('director_name');
             $table->boolean('authorized_to_act');
             $table->boolean('agreed_to_terms');
-            $table->boolean('planning_to_pay_myself');
-            $table->boolean('planning_to_pay_employees');
-            $table->boolean('no_payment_for_3_months');
-            $table->date('first_payday');
-            $table->boolean('is_first_payday_of_year');
+            $table->json('company_payee')->nullable();
+            $table->date('first_payday')->nullable();
+            $table->boolean('is_first_payday_of_year')->nullable();
             $table->boolean('is_first_payroll_of_company')->nullable();
             $table->string('payroll_provider')->nullable();
+            $table->integer('step')->default(0);
             $table->timestamps();
         });
     }

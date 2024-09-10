@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GovTalkMessage xmlns="http://www.govtalk.gov.uk/CM/envelope">
+  <EnvelopeVersion>2.0</EnvelopeVersion>
+  <Header>
+    <MessageDetails>
+      <Class>HMRC-PAYE-RTI-FPS-TIL</Class>
+      <Qualifier>request</Qualifier>
+      <Function>submit</Function>
+      <TransactionID>17256426945808</TransactionID>
+      <CorrelationID/>
+      <Transformation>XML</Transformation>
+      <GatewayTest>1</GatewayTest>
+    </MessageDetails>
+    <SenderDetails>
+      <IDAuthentication>
+        <SenderID>ISV635</SenderID>
+        <Authentication>
+          <Method>clear</Method>
+          <Value>fGuR34fAOEJf</Value>
+        </Authentication>
+      </IDAuthentication>
+      <EmailAddress>muhammad.anees@xepos.co.uk</EmailAddress>
+    </SenderDetails>
+  </Header>
+  <GovTalkDetails>
+    <Keys>
+      <Key Type="TaxOfficeNumber">635</Key>
+      <Key Type="TaxOfficeReference">A635</Key>
+    </Keys>
+    <ChannelRouting>
+      <Channel>
+        <URI>9136</URI>
+        <Product>XEPayroll</Product>
+        <Version>1</Version>
+      </Channel>
+      <Timestamp>2024-09-06T17:11:34</Timestamp>
+    </ChannelRouting>
+  </GovTalkDetails>
+  <Body>
+    <IRenvelope xmlns="http://www.govtalk.gov.uk/taxation/PAYE/RTI/FullPaymentSubmission/24-25/1">
+      <IRheader>
+        <Keys>
+          <Key Type="TaxOfficeNumber">635</Key>
+          <Key Type="TaxOfficeReference">A635</Key>
+        </Keys>
+        <PeriodEnd>2025-04-05</PeriodEnd>
+        <DefaultCurrency>GBP</DefaultCurrency>
+        <IRmark Type="generic">xETJCNRp56/qiVIPAGVUKkuIBsA=</IRmark>
+        <Sender>Employer</Sender>
+      </IRheader>
+      <FullPaymentSubmission>
+        <EmpRefs>
+          <OfficeNo>635</OfficeNo>
+          <PayeRef>A635</PayeRef>
+          <AORef>120PA01793429</AORef>
+          <COTAXRef>1111111111</COTAXRef>
+        </EmpRefs>
+        <RelatedTaxYear>24-25</RelatedTaxYear>
+        <Employee>
+          <EmployeeDetails>
+            <NINO>AA123456C</NINO>
+            <Name>
+              <Ttl>Mr</Ttl>
+              <Fore>John</Fore>
+              <Sur>Smith</Sur>
+            </Name>
+            <Address>
+              <Line>1 Street</Line>
+              <Line>Gosforth</Line>
+              <Line>Town</Line>
+              <UKPostcode>b28 0ew</UKPostcode>
+            </Address>
+            <BirthDate>2000-01-01</BirthDate>
+            <Gender>M</Gender>
+          </EmployeeDetails>
+          <Employment>
+            <PayId>123-A02</PayId>
+            <FiguresToDate>
+              <TaxablePay>8000.00</TaxablePay>
+              <TotalTax>756.76</TotalTax>
+            </FiguresToDate>
+            <Payment>
+              <PayFreq>M1</PayFreq>
+              <PmtDate>2024-07-05</PmtDate>
+              <MonthNo>7</MonthNo>
+              <PeriodsCovered>1</PeriodsCovered>
+              <HoursWorked>D</HoursWorked>
+              <TaxCode>810L</TaxCode>
+              <TaxablePay>4000.00</TaxablePay>
+              <TaxDeductedOrRefunded>756.76</TaxDeductedOrRefunded>
+            </Payment>
+            <NIlettersAndValues>
+              <NIletter>A</NIletter>
+              <GrossEarningsForNICsInPd>4000.00</GrossEarningsForNICsInPd>
+              <GrossEarningsForNICsYTD>8000.00</GrossEarningsForNICsYTD>
+              <AtLELYTD>928.00</AtLELYTD>
+              <LELtoPTYTD>5406.00</LELtoPTYTD>
+              <PTtoUELYTD>0.00</PTtoUELYTD>
+              <TotalEmpNICInPd>465.88</TotalEmpNICInPd>
+              <TotalEmpNICYTD>931.76</TotalEmpNICYTD>
+              <EmpeeContribnsInPd>0.00</EmpeeContribnsInPd>
+              <EmpeeContribnsYTD>0.00</EmpeeContribnsYTD>
+            </NIlettersAndValues>
+          </Employment>
+        </Employee>
+      </FullPaymentSubmission>
+    </IRenvelope>
+  </Body>
+</GovTalkMessage>

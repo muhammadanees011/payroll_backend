@@ -96,7 +96,6 @@ class HMRCGatewayMessageRepository implements HMRCGatewayMessageInterface {
         }
 
         $xml .= '
-                                <GatewayTimestamp></GatewayTimestamp>
                             </MessageDetails>';
 
         if ($this->sender_name !== NULL) {

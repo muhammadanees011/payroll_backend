@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('pay_schedules', function (Blueprint $table) {
             $table->id();
+            $table->bigInteger('company_id')->unsigned()->nullable();
+            $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             $table->string('name');
             $table->enum('pay_frequency',['Weekly','Fortnightly','Four Weekly','Monthly']);
             $table->string('paydays');
             $table->date('first_paydate');
-            $table->enum('day_rate_method',['calander_month','yearly_working_days']);
+            $table->enum('day_rate_method',['Calander Month','Yearly Working Days']);
             $table->timestamps();
         });
     }

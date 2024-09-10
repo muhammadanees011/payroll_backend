@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use App\Mail\EmailVerification;
+use App\Mail\ForgotPasswordEmail;
 use Illuminate\Support\Carbon;
 use Laravel\Passport\Passport;
 use Illuminate\Support\Facades\DB;
@@ -19,9 +21,8 @@ class AuthController extends Controller
     //------------REGISTER USER--------------
     public function register(Request $request){
         $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'gender' => 'required|string|max:20',
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
         ]);
@@ -29,11 +30,21 @@ class AuthController extends Controller
         {
             return response()->json(['errors'=>$validator->errors()->all()], 422);
         }
+        // try{
+        // DB::beginTransaction();
         $request['password']=Hash::make($request['password']);
         $request['remember_token'] = Str::random(10);
         $user = User::create($request->toArray());
+        // DB::commit();
         $response = ['user' => $user];
+        $this->send_email_verification_code($user->email);
         return response()->json($response, 200);
+        // } catch (\Exception $exception) {
+        //     DB::rollback();
+        //     if (('APP_ENV') == 'local') {
+        //         dd($exception);
+        //     }
+        // }
     }
 
     //------------LOGIN USER--------------
@@ -56,7 +67,7 @@ class AuthController extends Controller
             return response()->json($data);
         } 
         else{ 
-            return response()->json('Unauthorized.',401);
+            return response()->json(['errors'=>['Incorrect Email or Password']],401);
         } 
     }
     //------------LOGOUT USER--------------
@@ -77,40 +88,44 @@ class AuthController extends Controller
             'email' => 'required|email|exists:users,email',
         ]);
         if ($validator->fails()) {
-            return response()->json($validator->messages()->first(), 403);
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
         }
-        $otp = mt_rand(1000, 9999);
+        $email_verification_code = mt_rand(100000, 999999);
         $user = User::where('email', $request->email)->first();
-        $user->otp = $otp;
+        if($user->email_verification_code!=null){
+            return response()->json(['errors'=>['Verify your email first']], 500);
+        }
+        $user->reset_password_code = $email_verification_code;
         $user->save();
         //Send OTP to Email
         try {
             $mailData = [
-            'title' => 'Reset Your Password',
-            'body' => $otp,
-            'user_name'=> $user->first_name,
+            'reset_password_code' => $email_verification_code,
+            'user_name'=> $user->name,
             ];
-            // Mail::to($request->email)->send(new ForgotPasswordEmail($mailData));
+            Mail::to($request->email)->send(new ForgotPasswordEmail($mailData));
         } catch (\Exception $e) {
             return response()->json($e->getMessage());
         }
-        return response()->json('Forgot Password OTP sent successfully', 200);
+        return response()->json('Forgot Password code sent successfully', 200);
     }
     //--------------VERIFY OTP---------------
     public function forgot_password_verify_otp(Request $request){
         $validator = Validator::make($request->all(), [
             'email' => 'required|exists:users,email',
-            'otp' => 'required|exists:users,otp',
+            'reset_password_code' => 'required|exists:users,reset_password_code',
         ]);
         if ($validator->fails()) {
-            return response()->json($validator->messages()->first(), 403);
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
         }
 
-        $user = User::where('email', $request->email)->where('otp', $request->otp)->first();
+        $user = User::where('email', $request->email)->where('reset_password_code', $request->reset_password_code)->first();
         if ($user) {
+            $user->reset_password_code=null;
+            $user->save();
             return response()->json('Code verified successfully.', 200);
         } else {
-            return response()->json('Code verified successfully.', 201);
+            return response()->json(['message'=>'Record not found.'], 401);
         }
     }
     //--------------CHANGE PASSWORD---------------
@@ -121,7 +136,7 @@ class AuthController extends Controller
             'new_password' => 'required|min:6|confirmed',
         ]);
         if ($validator->fails()) {
-            return response()->json($validator->messages()->first(), 403);
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
         }
         $user = User::where('id', $request->user_id)->first();
         if($request->new_password==$request->old_password){ 
@@ -138,95 +153,50 @@ class AuthController extends Controller
     public function set_new_password(Request $request){
         $validator = Validator::make($request->all(), [
             'email' => 'required|exists:users,email',
-            'otp' => 'required|exists:users,otp',            
-            'new_password' => 'required|min:6|confirmed',
+            'password' => 'required|min:6|confirmed',
         ]);
         if ($validator->fails()) {
-            return response()->json($validator->messages()->first(), 403);
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
         }
         $user = User::where('email', $request->email)->first();
-        $user->password = Hash::make($request->new_password);
-        $user->otp=null;
+        $user->password = Hash::make($request->password);
         $user->save();
-        return response()->json('Password changed successfully.', 200);
+        return response()->json(['message'=>'Password changed successfully.'], 200);
     }
     //-------------VERIFY EMAIL---------------
     public function verify_email(Request $request){
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
-            'otp' => 'required',
+            'email_verification_code' => 'required',
         ]);
         if ($validator->fails()) {
-            return response()->json($validator->messages()->first(), 403);
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
         }
-        $user = User::where('email', $request->email)->where('otp', $request->otp)->first();
+        $user = User::where('email', $request->email)->where('email_verification_code', $request->email_verification_code)->first();
         if ($user) {
             $user->email_verified_at = Carbon::now();
-            $user->otp = NULL;
+            $user->email_verification_code = NULL;
             $user->save();
-            $tokenResult = $user->createToken('Personal Access Token');
-            $token = $tokenResult->token;
-            $token->save();
-            $data['access_token'] = $tokenResult->accessToken;
-            $data['token_type'] = 'Bearer';
-            $data['expires_at'] = Carbon::parse($tokenResult->token->expires_at)->toDateTimeString();
-            $data['user'] = $user;
             return response()->json('Email Verified Successfully', 200);
         } else {
             return response()->json('Invalid code. Check your email and try again', 201);
         }
     }
     //-------------RESEND EMAIL VERIFICATION OTP---------------
-    public function resend_email_verification_otp(Request $request){
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|exists:users,email',
-        ]);
-        if ($validator->fails()) {
-            return response()->json($validator->messages()->first(), 403);
+    public function send_email_verification_code($email){
+        $code = mt_rand(100000, 999999);
+        $user = User::where('email', $email)->first();
+        if(!$user){
+            return response()->json('Incorrect Email.',404);
         }
-        $otp = mt_rand(1000, 9999);
-        $user = User::where('email', $request->email)->first();
-        $user->otp = $otp;
+        $user->email_verification_code = $code;
         $user->save();
         $user_name=$user->name;
         // try {
-        //     Mail::to($request->email)->send(new EmailVerification($user->name, $otp));
+            Mail::to($email)->send(new EmailVerification($code));
         // } catch (\Exception $e) {
-        //     return $this->sendError($e->getMessage(), null);
+        //     return response()->json($e->getMessage(),500);
         // }
-        return response()->json('Email Verification OTP sent Successfully.',200);
-    }
-    //-------------PROFILE SETTINGS-----------
-    public function profileSettings(Request $request){
-        $user_id=Auth::user();
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'required',
-            'last_name' => 'required',
-            'email' => 'required|string|email|max:255|unique:users,email,'.$user_id->id,
-        ]);
-        if ($validator->fails()) {
-            return response()->json($validator->messages()->first(), 403);
-        }
-        try {
-        DB::beginTransaction();
-        $user=User::where('id',$user_id->id)->first();
-        $created_at=$user->created_at;
-        $updated_at=$user->updated_at;
-        $user->first_name=$request->first_name;
-        $user->last_name=$request->last_name;
-        $user->email=$request->email;
-        $user->created_at=$created_at;
-        $user->updated_at=$updated_at;
-        $user->save();
-        DB::commit();
-        return response()->json('Successfully updated user settings',200);
-        } catch (\Exception $exception) {
-            DB::rollback();
-            if (('APP_ENV') == 'local') {
-                dd($exception);
-            } else {
-            return response()->json($exception, 500);
-            }
-        }
+        return response()->json('Email Verification Code sent Successfully.',200);
     }
 }

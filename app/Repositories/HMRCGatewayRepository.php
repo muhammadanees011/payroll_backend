@@ -131,12 +131,11 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
             $message->message_live_set($this->gateway_live);
             $message->message_keys_set($this->message_keys_get());
             $message->body_set_xml($body_xml);
+       
 
         //--------------------------------------------------
         // Send
-
             $this->_send($message);
-
         //--------------------------------------------------
         // Response
 
@@ -306,27 +305,27 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         //--------------------------------------------------
         // Setup message
 
-            $this->message_class = $request['class'];
-            $this->gateway_url = $this->submission_url_get();
+        $this->message_class = $request['class'];
+        $this->gateway_url = $this->submission_url_get();
 
-            $message = $this->hmrcGatewayMessageRepository;
-            $message->vendor_set($this->vendor_code, $this->vendor_name);
-            $message->message_qualifier_set('request');
-            $message->message_function_set('delete');
-            $message->message_live_set($this->gateway_live);
-            $message->message_correlation_set($request['correlation']);
+        $message = $this->hmrcGatewayMessageRepository;
+        $message->vendor_set($this->vendor_code, $this->vendor_name);
+        $message->message_qualifier_set('request');
+        $message->message_function_set('delete');
+        $message->message_live_set($this->gateway_live);
+        $message->message_correlation_set($request['correlation']);
 
         //--------------------------------------------------
         // Send
 
-            $this->_send($message);
+        $this->_send($message);
 
         //--------------------------------------------------
         // Verify
 
-            if ($this->response_correlation != $request['correlation']) {
-                exit_with_error('Did not delete correlation "' . $request['correlation'] . '"', $this->response_debug);
-            }
+        if ($this->response_correlation != $request['correlation']) {
+            exit_with_error('Did not delete correlation "' . $request['correlation'] . '"', $this->response_debug);
+        }
 
     }
 
@@ -339,60 +338,58 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         //--------------------------------------------------
         // Message details
 
-            $this->message_transation = str_replace('.', '', microtime(true)); // uniqid();
+        $this->message_transation = str_replace('.', '', microtime(true)); // uniqid();
 
-            $message->message_class_set($this->message_class);
-            $message->message_transation_set($this->message_transation);
+        $message->message_class_set($this->message_class);
+        $message->message_transation_set($this->message_transation);
 
-            $message_xml = $message->xml_get();
-            $message_correlation = $message->message_correlation_get();
+        $message_xml = $message->xml_get();
+        $message_correlation = $message->message_correlation_get();
 
         //--------------------------------------------------
         // IRMark
 
-            if (preg_match('/(<IRmark Type="generic">)[^<]*(<\/IRmark>)/', $message_xml, $matches)) {
+        if (preg_match('/(<IRmark Type="generic">)[^<]*(<\/IRmark>)/', $message_xml, $matches)) {
 
-                $message_xml_clean = str_replace($matches[0], '', $message_xml);
+            $message_xml_clean = str_replace($matches[0], '', $message_xml);
 
-                if (preg_match('/<GovTalkMessage( xmlns="[^"]+")>/', $message_xml, $namespace_matches)) {
-                    $message_namespace = $namespace_matches[1];
-                } else {
-                    $message_namespace = '';
-                }
-
-                $message_xml_clean = preg_replace('/^.*<Body>(.*)<\/Body>.*$/s', '<Body' . $message_namespace . '>$1</Body>', $message_xml_clean);
-
-                $message_xml_dom = new DOMDocument;
-                $message_xml_dom->loadXML($message_xml_clean);
-
-                $message_irmark = base64_encode(sha1($message_xml_dom->documentElement->C14N(), true));
-
-                $message_xml = str_replace($matches[0], $matches[1] . $message_irmark . $matches[2], $message_xml);
-
+            if (preg_match('/<GovTalkMessage( xmlns="[^"]+")>/', $message_xml, $namespace_matches)) {
+                $message_namespace = $namespace_matches[1];
             } else {
-
-                $message_irmark = NULL;
-
+                $message_namespace = '';
             }
+
+            $message_xml_clean = preg_replace('/^.*<Body>(.*)<\/Body>.*$/s', '<Body' . $message_namespace . '>$1</Body>', $message_xml_clean);
+
+            $message_xml_dom = new DOMDocument;
+            $message_xml_dom->loadXML($message_xml_clean);
+            $message_xml_dom->preserveWhiteSpace=FALSE;
+            $message_irmark = base64_encode(sha1($message_xml_dom->documentElement->C14N(), true));
+            $message_xml = str_replace($matches[0], $matches[1] . $message_irmark . $matches[2], $message_xml);
+
+        } else {
+
+            $message_irmark = NULL;
+
+        }
 
         //--------------------------------------------------
         // Validation
 
-            if (false) {
+        if (false) {
+            $xsi_path = dirname(__FILE__) . '/' . $xsi_path;
 
-                $xsi_path = dirname(__FILE__) . '/' . $xsi_path;
+            $validate_xml = $message->body_get_xml();
+            // $validate_xml = $message->xml_get();
 
-                $validate_xml = $message->body_get_xml();
-                // $validate_xml = $message->xml_get();
+            $validate = new DOMDocument();
+            $validate->loadXML($validate_xml);
 
-                $validate = new DOMDocument();
-                $validate->loadXML($validate_xml);
-
-                if (!$validate->schemaValidate($xsi_path)) {
-                    exit_with_error('Invalid XML according to XSI file', $validate_xml);
-                }
-
+            if (!$validate->schemaValidate($xsi_path)) {
+                exit_with_error('Invalid XML according to XSI file', $validate_xml);
             }
+
+        }
 
         //--------------------------------------------------
 
@@ -407,45 +404,55 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         //--------------------------------------------------
         // Setup connection - similar to curl
 
-            $connection = new connection();
-            $connection->timeout_set(15);
-            $connection->exit_on_error_set(false);
-            $connection->header_set('Content-Type', 'text/xml; charset=UTF-8');
+        $connection = new connection();
+        $connection->timeout_set(15);
+        $connection->exit_on_error_set(false);
+        $connection->header_set('Content-Type', 'application/xml');
 
         //--------------------------------------------------
         // Send request
 
-            header('Content-Type: text/xml; charset=UTF-8');
-            // exit($message_xml);
-            // dd($message_xml);
-            $send_result = $connection->post($this->gateway_url, $message_xml);
-            if (!$send_result) {
-                exit_with_error('Could not connect to HMRC', $connection->error_message_get() . "\n\n" . $connection->error_details_get());
-            }
+        header('Content-Type: text/xml; charset=UTF-8');
+        // exit($message_xml);
+        
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = false; // This removes extra whitespaces
+        $dom->formatOutput = true; // This makes it pretty/indented
+        $dom->loadXML($message_xml);        
+        // Get the formatted XML as a string
+        $message_xml = $dom->saveXML();
+        $dom->save("xml/fps.xml");
 
-            if ($connection->response_code_get() != 200) {
-                exit_with_error('Invalid HTTP response from HMRC', $connection->response_full_get());
-            }
+        // echo $message_xml;
+        // exit();
 
+        // dd($message_xml);
+        $send_result = $connection->post($this->gateway_url, $message_xml);
+        if (!$send_result) {
+            exit_with_error('Could not connect to HMRC', $connection->error_message_get() . "\n\n" . $connection->error_details_get());
+        }
+
+        if ($connection->response_code_get() != 200) {
+            exit_with_error('Invalid HTTP response from HMRC', $connection->response_full_get());
+        }
+        $this->response_string = $connection->response_data_get();
+        $this->response_object = simplexml_load_string($this->response_string);
+        $this->response_debug = $this->gateway_url . "\n\n" . $message_xml . "\n\n" . $this->response_string;
         //--------------------------------------------------
         // Parse XML
-            // if (true) {
-            // 	header('Content-Type: text/xml; charset=UTF-8');
-            // 	exit($this->response_string);
-            // } else {
-            // 	$dom_sxe = dom_import_simplexml($this->response_object);
-            // 	$dom = new DOMDocument('1.0');
-            // 	$dom_sxe = $dom->importNode($dom_sxe, true);
-            // 	$dom_sxe = $dom->appendChild($dom_sxe);
-            // 	$dom->preserveWhiteSpace = false;
-            // 	$dom->formatOutput = true;
-            // 	echo $dom->saveXML() . "\n--------------------------------------------------\n\n";
-            // 	exit();
-            // }
-
-            $this->response_string = $connection->response_data_get();
-            $this->response_object = simplexml_load_string($this->response_string);
-            $this->response_debug = $this->gateway_url . "\n\n" . $message_xml . "\n\n" . $this->response_string;
+        if (true) {
+            header('Content-Type: text/xml; charset=UTF-8');
+            exit($this->response_string);
+        } else {
+            $dom_sxe = dom_import_simplexml($this->response_object);
+            $dom = new DOMDocument('1.0');
+            $dom_sxe = $dom->importNode($dom_sxe, true);
+            $dom_sxe = $dom->appendChild($dom_sxe);
+            $dom->preserveWhiteSpace = false;
+            $dom->formatOutput = true;
+            echo $dom->saveXML() . "\n--------------------------------------------------\n\n";
+            exit();
+        }
         //--------------------------------------------------
         // Update log
         $log->response_xml=$this->response_string;
@@ -455,23 +462,23 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         //--------------------------------------------------
         // Extract details
 
-            if (isset($this->response_object->Header->MessageDetails->Qualifier)) {
-                $this->response_qualifier = strval($this->response_object->Header->MessageDetails->Qualifier);
-            } else {
-                exit_with_error('Invalid response from HMRC (qualifier)', $this->response_debug);
-            }
+        if (isset($this->response_object->Header->MessageDetails->Qualifier)) {
+            $this->response_qualifier = strval($this->response_object->Header->MessageDetails->Qualifier);
+        } else {
+            exit_with_error('Invalid response from HMRC (qualifier)', $this->response_debug);
+        }
 
-            if (isset($this->response_object->Header->MessageDetails->Function)) {
-                $this->response_function = strval($this->response_object->Header->MessageDetails->Function);
-            } else {
-                exit_with_error('Invalid response from HMRC (function)', $this->response_debug);
-            }
+        if (isset($this->response_object->Header->MessageDetails->Function)) {
+            $this->response_function = strval($this->response_object->Header->MessageDetails->Function);
+        } else {
+            exit_with_error('Invalid response from HMRC (function)', $this->response_debug);
+        }
 
-            if (isset($this->response_object->Header->MessageDetails->CorrelationID)) {
-                $this->response_correlation = strval($this->response_object->Header->MessageDetails->CorrelationID);
-            } else {
-                exit_with_error('Invalid response from HMRC (correlation)', $this->response_debug);
-            }
+        if (isset($this->response_object->Header->MessageDetails->CorrelationID)) {
+            $this->response_correlation = strval($this->response_object->Header->MessageDetails->CorrelationID);
+        } else {
+            exit_with_error('Invalid response from HMRC (correlation)', $this->response_debug);
+        }
 
         //--------------------------------------------------
         // Update log (additional details)
@@ -480,22 +487,22 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         $log->response_correlation=$this->response_correlation;
         $log->save();
 
-            // if ($this->log_table_sql) {
+        // if ($this->log_table_sql) {
 
-            //     $this->log_db->update($this->log_table_sql, array(
-            //             'response_qualifier' => $this->response_qualifier,
-            //             'response_function' => $this->response_function,
-            //             'response_correlation' => $this->response_correlation,
-            //         ), $log_where_sql, $log_parameters);
+        //     $this->log_db->update($this->log_table_sql, array(
+        //             'response_qualifier' => $this->response_qualifier,
+        //             'response_function' => $this->response_function,
+        //             'response_correlation' => $this->response_correlation,
+        //         ), $log_where_sql, $log_parameters);
 
-            // }
+        // }
 
         //--------------------------------------------------
         // Check correlation
 
-            if ($message_correlation !== NULL && $this->response_correlation != $message_correlation) {
-                exit_with_error('Invalid response correlation "' . $message_correlation . '"', $this->response_debug);
-            }
+        if ($message_correlation !== NULL && $this->response_correlation != $message_correlation) {
+            exit_with_error('Invalid response correlation "' . $message_correlation . '"', $this->response_debug);
+        }
 
     }
 }

@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('hmrc_settings', function (Blueprint $table) {
             $table->id();
+            $table->bigInteger('company_id')->unsigned()->nullable();
+            $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             $table->string('account_office_reference');
             $table->string('paye_reference');
             $table->string('taxpayer_reference');
-            $table->boolean('eligible_for_employment_allowance');
-            $table->boolean('eligible_for_small_employers_relief');
-            $table->string('business_sector');
+            $table->json('employment_allowance');
+            $table->json('business_sector');
             $table->string('hmrc_gateway_id');
             $table->string('hmrc_password');
             $table->timestamps();
