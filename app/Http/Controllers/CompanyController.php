@@ -45,8 +45,8 @@ class CompanyController extends Controller
                 $company->address_line_2=$request->address_line_2;
                 $company->city=$request->city;
                 $company->director_name=$request->director_name;
-                $company->authorized_to_act = $request->authorized_to_act[0] ?? '' === 'authorized_to_act';
-                $company->agreed_to_terms=$request->agreed_to_terms[0] ?? '' === 'agreed_to_terms';
+                $company->authorized_to_act = $request->authorized_to_act[0] && $request->authorized_to_act[0] == 'authorized_to_act' ? true : false;
+                $company->agreed_to_terms=$request->agreed_to_terms[0] && $request->agreed_to_terms[0] == 'agreed_to_terms' ? true : false;
                 $company->step=1;
                 $company->save();
                 $response['message']='Successfully Saved';
@@ -135,6 +135,39 @@ class CompanyController extends Controller
         //         dd($exception);
         //     }
         // }
+    }
+
+    public function updateDetails(Request $request){
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'legal_structure' => 'required|array',
+            'post_code' => 'required|string|max:255',
+            'address_line_1' => 'required|string|max:255',
+            'address_line_2' => 'nullable|string|max:255',
+            'city' => 'required|string|max:255',
+            'director_name' => 'required|string|max:255',
+            'authorized_to_act' => 'nullable|array',
+            'agreed_to_terms' => 'nullable|array',
+        ]);
+        if ($validator->fails())
+        {
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
+        }
+        $company=Company::first();
+        $company->name=$request->name;
+        $company->legal_structure=$request->legal_structure['name'];
+        $company->post_code=$request->post_code;
+        $company->address_line_1=$request->address_line_1;
+        $company->address_line_2=$request->address_line_2;
+        $company->city=$request->city;
+        $company->director_name=$request->director_name;
+        $company->authorized_to_act = $request->authorized_to_act[0] && $request->authorized_to_act[0] == 'authorized_to_act' ? true : false;
+        $company->agreed_to_terms=$request->agreed_to_terms[0] && $request->agreed_to_terms[0] == 'agreed_to_terms' ? true : false;
+        $company->step=1;
+        $company->save();
+        $response['message']='Successfully Saved';
+        $response['step']=1;
+        return response()->json($response,200);
     }
 
     public function getStep(){

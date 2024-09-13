@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('paydays');
             $table->date('first_paydate');
             $table->enum('day_rate_method',['Calander Month','Yearly Working Days']);
+            $table->enum('status',['Active','Inactive'])->default('Active');
             $table->timestamps();
         });
     }

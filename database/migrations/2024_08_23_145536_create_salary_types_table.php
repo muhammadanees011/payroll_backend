@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('salary_types', function (Blueprint $table) {
             $table->id();
-            $table->string('description');
-            $table->boolean('pensionable');
+            $table->string('description')->nullable();
+            $table->boolean('pensionable')->nullable();
             $table->double('multiply_by')->nullable();
             $table->enum('type',['salary','overtime']);
+            $table->string('code')->nullable();
             $table->enum('salary_period',['hour','unit'])->nullable();
             $table->double('salary_rate')->nullable();
             $table->timestamps();

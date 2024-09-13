@@ -8,4 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class SalaryType extends Model
 {
     use HasFactory;
+
+    protected $casts = [
+        'salary_rate' => 'decimal:2',
+    ];
 }

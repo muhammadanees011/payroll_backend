@@ -16,10 +16,10 @@ return new class extends Migration
             $table->string('name');
             $table->string('code');
             $table->boolean('is_benefit_in_kind');
-            $table->boolean('taxable');
-            $table->boolean('pensionable');
-            $table->boolean('subject_to_national_insurance');
-            $table->enum('payment_type',['gross_addition','gross_deduction','net_addition','net_deduction']);
+            $table->boolean('taxable')->nullable();
+            $table->boolean('pensionable')->nullable();
+            $table->boolean('subject_to_national_insurance')->nullable();
+            $table->enum('payment_type',['Gross Addition','Gross Deduction','Net Addition','Net Deduction']);
             $table->timestamps();
         });
     }
