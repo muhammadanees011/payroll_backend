@@ -6,11 +6,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\PaySchedule;
+use App\Models\Payroll;
+use Carbon\Carbon;
 
 class PayScheduleController extends Controller
 {
     public function index(){
         $paySchedules=PaySchedule::orderBy('created_at', 'desc')->get();
+        return response()->json($paySchedules,200);
+    }
+
+    public function getPayScheduleDropdown(){
+        $paySchedules = PaySchedule::orderBy('created_at', 'desc')->get()
+        ->map(function($schedule) {
+            return [
+                'name' => $schedule->name,
+                'code' => $schedule->id 
+            ];
+        });
         return response()->json($paySchedules,200);
     }
 
@@ -33,6 +46,53 @@ class PayScheduleController extends Controller
         $paySchedule->first_paydate=$request->first_paydate;
         $paySchedule->day_rate_method=$request->day_rate_method['name'];
         $paySchedule->save();
+
+        $inputDate = Carbon::parse($request->first_paydate);
+        if ($request->pay_frequency['name'] == 'Monthly') {
+            $startDate = $inputDate->copy()->subMonth()->addDay(1);
+            $endDate = $inputDate->endOfMonth();
+        } elseif ($request->pay_frequency['name'] == 'Weekly') {
+            $startDate = $inputDate->copy()->subWeek();
+            $endDate = $inputDate->copy()->addWeek()->subDay();
+        } elseif ($request->pay_frequency['name'] == 'Fortnightly') {
+            $startDate = $inputDate->copy()->subWeeks(2);
+            $endDate = $inputDate->copy()->addWeeks(2)->subDay();
+        } elseif ($request->pay_frequency['name'] == 'Four Weekly') {
+            $startDate = $inputDate->copy()->subWeeks(4);
+            $endDate = $inputDate->copy()->addWeeks(4)->subDay();
+        }
+
+        // Calculate tax period based on the tax year start (6th April)
+        $taxYearStart = Carbon::create($inputDate->year, 4, 6);
+        if ($inputDate->lessThan($taxYearStart)) {
+            $taxYearStart->subYear();  // Adjust to previous tax year if before 6th April
+        }
+
+        // Find the tax period
+        $tax_period = null;
+        if ($request->pay_frequency['name'] == 'Monthly') {
+            $monthsSinceStart = $taxYearStart->diffInMonths($endDate);
+            $tax_period = floor($monthsSinceStart + 1);  // Tax periods start from 1
+        } elseif ($request->pay_frequency['name'] == 'Weekly') {
+            $weeksSinceStart = $taxYearStart->diffInWeeks($endDate);
+            $tax_period = floor($weeksSinceStart + 1);
+        } elseif ($request->pay_frequency['name'] == 'Fortnightly') {
+            $fortnightsSinceStart = floor($taxYearStart->diffInWeeks($endDate) / 2);
+            $tax_period = floor($fortnightsSinceStart + 1);
+        } elseif ($request->pay_frequency['name'] == 'Four Weekly') {
+            $fourWeeksSinceStart = floor($taxYearStart->diffInWeeks($endDate) / 4);
+            $tax_period = floor($fourWeeksSinceStart + 1);
+        }
+
+        $payroll=new Payroll();
+        $payroll->pay_schedule_id=$paySchedule->id;
+        $payroll->tax_period=$tax_period;
+        $payroll->pay_run_start_date=$startDate;
+        $payroll->pay_run_end_date=$request->first_paydate;;
+        $payroll->pay_date=$request->first_paydate;
+        $payroll->status="draft";
+        $payroll->save();
+
         $response['message']='Successfully Saved';
         return response()->json($response,200);
     }

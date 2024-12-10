@@ -17,18 +17,16 @@ return new class extends Migration
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->bigInteger('pay_schedule_id')->unsigned()->nullable();
             $table->foreign('pay_schedule_id')->references('id')->on('pay_schedules')->onDelete('cascade');
-            $table->string('payroll_id');
-            $table->date('employement_start_date');
-            $table->enum('salary_type',['salaried','hourly']);
+            $table->enum('salary_type',['Salaried','Hourly']);
             $table->double('anual_salary')->nullable();
             $table->double('monthly_salary')->nullable();
             $table->double('weekly_salary')->nullable();
             $table->double('expected_work_hours_per_week');
-            $table->double('hourly_equivalent');
-            $table->boolean('is_director_current_tax_year');
+            $table->double('hourly_equivalent')->nullable();
+            $table->enum('is_director_current_tax_year',['Yes','No'])->nullable();
             $table->date('date_appointed_director')->nullable();
             $table->date('date_ended_directorship')->nullable();
-            $table->enum('calculation_method',['standard_annual_method','alternative_method'])->nullable();
+            $table->enum('calculation_method',['Standard Annual Method','Alternative Method'])->nullable();
             $table->timestamps();
         });
     }

@@ -18,8 +18,14 @@ return new class extends Migration
             $table->string('tax_code')->nullable();
             $table->double('previous_taxable_salary')->nullable();
             $table->double('previous_tax_paid')->nullable();
-            $table->enum('tax_basis',['cumulative','non_cumulative'])->nullable();
-            $table->enum('starter_type',['new_employee_with_p45','new_employee_without_p45','existing_employee'])->nullable();
+            $table->enum('tax_basis',['Cumulative','Non-Cumulative'])->nullable();
+            $table->string('starter_declaration')->nullable();
+            $table->string('current_employment_taxable_pay_ytd')->nullable();
+            $table->string('current_employment_tax_paid_ytd')->nullable();
+            $table->string('employee_pension_contributions_ytd')->nullable();
+            $table->string('payrolled_benefits_ytd')->nullable();
+            $table->enum('starter_type',['New Employee With P45','New Employee Without P45','Existing Employee'])->nullable();
+            $table->enum('employment_statutory_payments_loans',['Yes','No'])->nullable();
             $table->timestamps();
         });
     }

@@ -21,5 +21,9 @@ class DatabaseSeeder extends Seeder
             'phone' => '364878768768',
             'password' => '$2y$12$JpcFasaOmfRj4.qSrUvWsuFWcaRgQVsYIw7leQUV0uRxlBDgrDTBK' //password
         ]);
+
+        $this->call([
+            StudentLoanPaymentPlanSeeder::class,
+        ]);
     }
 }

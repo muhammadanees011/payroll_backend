@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('code');
-            $table->boolean('is_benefit_in_kind');
+            $table->boolean('is_benefit_in_kind')->nullable();
             $table->boolean('taxable')->nullable();
             $table->boolean('pensionable')->nullable();
             $table->boolean('subject_to_national_insurance')->nullable();

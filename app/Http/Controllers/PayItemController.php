@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\PayItem;
+use App\Models\SalaryType;
 
 class PayItemController extends Controller
 {
@@ -13,6 +14,29 @@ class PayItemController extends Controller
     public function getPayItems(){
         $payItems=PayItem::get();
         return response()->json($payItems,200);
+    }
+
+    public function getPayItemsDropDown(){
+        $payItems = PayItem::get()->map(function ($item) {
+            return [
+                'name' => $item->name.' (payitem)',
+                'code' => $item->id,
+                'type' => 'payitem',
+            ];
+        });
+
+        $salaryTypes = SalaryType::get()->map(function ($item) {
+            return [
+                'name' => $item->description.' (salary)',
+                'code' => $item->id,
+                'type' => 'salary',
+                'salary_period' => $item->salary_period, //for salary type
+                'salary_rate' => $item->salary_rate, //for salary type
+                'pensionable' => $item->pensionable, //for salary type
+            ];
+        });
+        $combinedItems = $payItems->merge($salaryTypes);
+        return response()->json($combinedItems, 200);
     }
 
     public function savePayItem(Request $request){

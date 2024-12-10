@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('salary_types', function (Blueprint $table) {
+        Schema::create('loan_payment_plans', function (Blueprint $table) {
             $table->id();
-            $table->string('description')->nullable();
-            $table->boolean('pensionable')->nullable();
-            $table->string('code')->nullable();
-            $table->enum('salary_period',['hour','unit'])->nullable();
-            $table->double('salary_rate')->nullable();
+            $table->string('payment_plan')->nullable();
+            $table->string('plan_description')->nullable();
+            $table->double('annual_threshold')->nullable();
+            $table->integer('repay_percentage')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('salary_types');
+        Schema::dropIfExists('loan_payment_plans');
     }
 };

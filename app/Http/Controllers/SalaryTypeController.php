@@ -18,8 +18,6 @@ class SalaryTypeController extends Controller
         $validator = Validator::make($request->all(), [
             'description' => 'nullable|string',
             'pensionable' => 'nullable|array',
-            'multiply_by' => 'nullable|numeric',
-            'type' => 'required|array',
             'code' => 'nullable',
             'salary_period' => 'nullable|array',
             'salary_rate' => 'nullable|numeric',
@@ -31,10 +29,8 @@ class SalaryTypeController extends Controller
         $salaryType=new SalaryType();
         $salaryType->code=$request->code;
         $salaryType->description=$request->description;
-        $salaryType->type=$request->type['name'];
         $salaryType->salary_period=$request->salary_period ?$request->salary_period['name']:null;
         $salaryType->salary_rate=$request->salary_rate;
-        $salaryType->multiply_by=$request->multiply_by;
         $salaryType->pensionable=$request->pensionable[0] ? ($request->pensionable[0]=='pensionable' ? true:false):false;
         $salaryType->save();
         $response['message']='Successfully Saved';

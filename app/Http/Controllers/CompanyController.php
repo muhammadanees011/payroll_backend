@@ -184,4 +184,37 @@ class CompanyController extends Controller
         $company=Company::first();
         return response()->json($company,200);
     }
+
+    public function getHMRCSettings(){
+        $settings=HmrcSetting::first();
+        if ($settings && $settings->hmrc_password) {
+            $settings->hmrc_password = Crypt::decryptString($settings->hmrc_password);
+        }
+        return response()->json($settings,200);
+    }
+
+    public function updateHMRCSettings(Request $request){
+        $validator = Validator::make($request->all(), [
+            'account_office_reference' => 'required|string|max:255',
+            'paye_reference' => 'required|string|max:255',
+            'taxpayer_reference' => 'nullable|string|max:255',
+            'employment_allowance' => 'nullable|array',
+            'business_sector' => 'nullable|array',
+            'hmrc_gateway_id' => 'required|string|max:255',
+            'hmrc_password' => 'nullable|string|max:255',
+        ]);
+        if ($validator->fails())
+        {
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
+        }
+        $hmrc= HmrcSetting::first();
+        $hmrc->account_office_reference=$request->account_office_reference;
+        $hmrc->paye_reference=$request->paye_reference;
+        $hmrc->taxpayer_reference=$request->taxpayer_reference;
+        $hmrc->employment_allowance=json_encode($request->employment_allowance);
+        $hmrc->business_sector=json_encode($request->business_sector);
+        $hmrc->hmrc_gateway_id=$request->hmrc_gateway_id;
+        $hmrc->hmrc_password=Crypt::encryptString($request->hmrc_password);
+        $hmrc->save();
+    }
 }

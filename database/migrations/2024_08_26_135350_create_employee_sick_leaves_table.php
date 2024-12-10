@@ -16,9 +16,12 @@ return new class extends Migration
             $table->bigInteger('employee_id')->unsigned()->nullable();
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->date('start_date');
-            $table->date('end_date');
-            $table->double('deducted_days')->nullable();
-            $table->double('ssp_payable_days')->nullable();
+            $table->date('end_date')->nullable();
+            $table->double('average_weekly_earnings')->nullable();
+            $table->integer('days_unavailable')->nullable();
+            $table->boolean('statutory_eligibility')->nullable();
+            $table->integer('statutory_waiting_days')->nullable();
+            $table->integer('statutory_payable_days')->nullable();
             $table->enum('status',['paid','unpaid'])->nullable();
             $table->timestamps();
         });

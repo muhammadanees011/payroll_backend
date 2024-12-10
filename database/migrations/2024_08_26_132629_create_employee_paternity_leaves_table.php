@@ -18,10 +18,10 @@ return new class extends Migration
             $table->date('expected_due_date')->nullable();
             $table->date('start_date');
             $table->date('end_date');
-            $table->date('2nd_block_start_date')->nullable();
-            $table->date('2nd_block_end_date')->nullable();
+            $table->date('second__block_start_date')->nullable();
+            $table->date('second_block_end_date')->nullable();
             $table->double('average_weekly_earnings')->nullable();
-            $table->enum('leave_type',['one_week','two_weeks_in_row','two_weeks_in_blocks']);
+            $table->enum('leave_type',['My employee will take 1 week of leave','My employee will take 2 weeks of leave in a row','My employee will take 2 weeks of leave in seperate blocks']);
             $table->timestamps();
         });
     }
