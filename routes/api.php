@@ -90,6 +90,7 @@ Route::group(['middleware' => 'auth:api'], function () {
 
     Route::get('/getEmployeeYTD/{id?}', [EmployeeYearToDatesController::class, 'getEmployeeYTD']);
     Route::post('/storeYTD', [EmployeeYearToDatesController::class, 'storeYTD']);
+    Route::post('/savePayrollEmployeesYTD', [EmployeeYearToDatesController::class, 'savePayrollEmployeesYTD']);
 
     Route::get('/getSickLeaves/{id?}', [EmployeeSickLeaveController::class, 'index']);
     Route::post('/storeSickLeave', [EmployeeSickLeaveController::class, 'store']);
@@ -108,13 +109,26 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/updateHMRCSettings', [CompanyController::class, 'updateHMRCSettings']);
 
     Route::get('/activePayroll', [PayrollController::class, 'activePayroll']);
-    Route::get('/salariedEmployees/{id?}', [PayrollController::class, 'salariedEmployees']);
+    Route::get('/historyPayroll', [PayrollController::class, 'historyPayroll']);
+    Route::post('/getPayrollDetail', [PayrollController::class, 'getPayrollDetail']);
+    Route::post('/salariedEmployees', [PayrollController::class, 'salariedEmployees']);
     Route::get('/inputHours/{id?}', [PayrollController::class, 'inputHours']);
     Route::post('/updateInputHours', [PayrollController::class, 'updateInputHours']);
-    Route::get('/hourlyEmployees/{id?}', [PayrollController::class, 'hourlyEmployees']);
+    Route::post('/hourlyEmployees', [PayrollController::class, 'hourlyEmployees']);
     Route::post('/runPayroll', [PayrollController::class, 'runPayroll']);
     Route::post('/employeePaySummary', [PayrollController::class, 'employeePaySummary']);
     Route::post('/addPayItemToPaySummary', [PayrollController::class, 'addPayItemToPaySummary']);
     Route::post('/updatePayItemToPaySummary', [PayrollController::class, 'updatePayItemToPaySummary']);
     Route::post('/removePayItemToPaySummary', [PayrollController::class, 'removePayItemToPaySummary']);
+    Route::post('/employeePaySlip', [PayrollController::class, 'employeePaySlip']);
+    Route::post('/sendpayslip', [PayrollController::class, 'sendpayslip']);
+    Route::post('/sendPayslipAllEmployees', [PayrollController::class, 'sendPayslipAllEmployees']);
+    Route::post('/reviewPayroll', [PayrollController::class, 'reviewPayroll']);
+    Route::get('/getEmployeePayslips/{id?}', [PayrollController::class, 'getEmployeePayslips']);
+    Route::get('/viewEmployeePayslip/{id?}', [PayrollController::class, 'viewEmployeePayslip']);
+    Route::get('/downloadEmployeePayslip/{id?}', [PayrollController::class, 'downloadEmployeePayslip']);
+    Route::get('/deleteEmployeePayslip/{id?}', [PayrollController::class, 'deleteEmployeePayslip']);
+    Route::get('/downloadAllPayslips/{id?}', [PayrollController::class, 'downloadAllPayslips']);
+    Route::post('/submitPayroll', [PayrollController::class, 'submitPayroll']);
+
 });

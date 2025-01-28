@@ -12,7 +12,7 @@ use Carbon\Carbon;
 class PayScheduleController extends Controller
 {
     public function index(){
-        $paySchedules=PaySchedule::orderBy('created_at', 'desc')->get();
+        $paySchedules=PaySchedule::withCount('payScheduleEmployees')->orderBy('created_at', 'desc')->get();
         return response()->json($paySchedules,200);
     }
 
@@ -52,14 +52,14 @@ class PayScheduleController extends Controller
             $startDate = $inputDate->copy()->subMonth()->addDay(1);
             $endDate = $inputDate->endOfMonth();
         } elseif ($request->pay_frequency['name'] == 'Weekly') {
-            $startDate = $inputDate->copy()->subWeek();
-            $endDate = $inputDate->copy()->addWeek()->subDay();
+            $startDate = $inputDate->copy()->subWeek()->addDay(1);
+            $endDate = $inputDate->copy()->addWeek();
         } elseif ($request->pay_frequency['name'] == 'Fortnightly') {
-            $startDate = $inputDate->copy()->subWeeks(2);
-            $endDate = $inputDate->copy()->addWeeks(2)->subDay();
+            $startDate = $inputDate->copy()->subWeeks(2)->addDay(1);
+            $endDate = $inputDate->copy()->addWeek();
         } elseif ($request->pay_frequency['name'] == 'Four Weekly') {
-            $startDate = $inputDate->copy()->subWeeks(4);
-            $endDate = $inputDate->copy()->addWeeks(4)->subDay();
+            $startDate = $inputDate->copy()->subWeeks(4)->addDay(1);
+            $endDate = $inputDate->copy()->addWeek();
         }
 
         // Calculate tax period based on the tax year start (6th April)
@@ -72,16 +72,16 @@ class PayScheduleController extends Controller
         $tax_period = null;
         if ($request->pay_frequency['name'] == 'Monthly') {
             $monthsSinceStart = $taxYearStart->diffInMonths($endDate);
-            $tax_period = floor($monthsSinceStart + 1);  // Tax periods start from 1
+            $tax_period = floor($monthsSinceStart);
         } elseif ($request->pay_frequency['name'] == 'Weekly') {
             $weeksSinceStart = $taxYearStart->diffInWeeks($endDate);
-            $tax_period = floor($weeksSinceStart + 1);
+            $tax_period = floor($weeksSinceStart);
         } elseif ($request->pay_frequency['name'] == 'Fortnightly') {
-            $fortnightsSinceStart = floor($taxYearStart->diffInWeeks($endDate) / 2);
-            $tax_period = floor($fortnightsSinceStart + 1);
+            $fortnightsSinceStart = $taxYearStart->diffInWeeks($endDate);
+            $tax_period = floor($fortnightsSinceStart);
         } elseif ($request->pay_frequency['name'] == 'Four Weekly') {
-            $fourWeeksSinceStart = floor($taxYearStart->diffInWeeks($endDate) / 4);
-            $tax_period = floor($fourWeeksSinceStart + 1);
+            $fourWeeksSinceStart = $taxYearStart->diffInWeeks($endDate);
+            $tax_period = floor($fourWeeksSinceStart);
         }
 
         $payroll=new Payroll();

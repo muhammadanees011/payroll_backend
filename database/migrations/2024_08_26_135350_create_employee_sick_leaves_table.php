@@ -22,7 +22,7 @@ return new class extends Migration
             $table->boolean('statutory_eligibility')->nullable();
             $table->integer('statutory_waiting_days')->nullable();
             $table->integer('statutory_payable_days')->nullable();
-            $table->enum('status',['paid','unpaid'])->nullable();
+            $table->enum('status',['paid','processed','pending','unpaid'])->default('pending');
             $table->timestamps();
         });
     }

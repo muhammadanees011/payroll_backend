@@ -22,6 +22,7 @@ return new class extends Migration
             $table->date('second_block_end_date')->nullable();
             $table->double('average_weekly_earnings')->nullable();
             $table->enum('leave_type',['My employee will take 1 week of leave','My employee will take 2 weeks of leave in a row','My employee will take 2 weeks of leave in seperate blocks']);
+            $table->enum('status',['pending','processed'])->default('pending');
             $table->timestamps();
         });
     }

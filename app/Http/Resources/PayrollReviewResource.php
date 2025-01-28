@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class EmployeePaySummaryResource extends JsonResource
+class PayrollReviewResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -15,13 +15,6 @@ class EmployeePaySummaryResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'employee_id' => $this->employee->id,
-            'pay_schedule_id' => $this->pay_schedule_id,
-            'name' => $this->employee->forename.' '.$this->employee->surname,
-            'employee_payrollId' => $this->employee->payroll_id,
-            'tax_code' => $this->employeestarterdetail->tax_code,
-            'ni_category' => $this->employee->ni_category,
             'gross_pay' => $this->gross_pay,
             'net_pay' => $this->net_pay,
             'base_pay' => $this->base_pay,
@@ -30,13 +23,15 @@ class EmployeePaySummaryResource extends JsonResource
             'employee_nic' => $this->employee_nic,
             'employer_pension' => $this->employer_pension,
             'employer_nic' => $this->employer_nic,
-            'pay_frequency' => $this->payschedule->pay_frequency,
-            'hourly_equivalent' => $this->employementdetail->hourly_equivalent,
             'student_loan' => $this->student_loan,
             'pg_loan' => $this->pg_loan,
-            'sick_pay' => $this->sick_pay,
-            'paternity_pay' => $this->paternity_pay,
-            'payitems' => $this->whenLoaded('employeePayItems'),
+            'employees_count' => $this->employees_count,
+            // 'tax_period' => $this->tax_period,
+            // 'pay_date' => $this->pay_date,
+            'gross_addition' => $this->gross_addition_sum,
+            'gross_deduction' => $this->gross_deduction_sum,
+            'net_addition' => $this->net_addition_sum,
+            'net_deduction' => $this->net_deduction_sum,
         ];
     }
 }

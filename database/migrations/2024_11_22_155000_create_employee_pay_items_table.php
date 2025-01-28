@@ -26,6 +26,7 @@ return new class extends Migration
             $table->double('salary_rate')->nullable();
             $table->double('amount')->nullable(); //for all payitem,hourly and salary
             $table->enum('type',['Salary','PayItem']);
+            $table->enum('status',['active','history','draft','archived']);
             $table->timestamps();
         });
     }

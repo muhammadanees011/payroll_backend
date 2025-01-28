@@ -17,6 +17,8 @@ use App\Repositories\Interfaces\HMRC_RTI_EAS_Interface;
 use App\Repositories\HMRC_RTI_EAS_Repository;
 use App\Repositories\Interfaces\HMRC_VAT_Interface;
 use App\Repositories\HMRC_VAT_Repository;
+use App\Repositories\Interfaces\Payroll_Interface;
+use App\Repositories\Payroll_Repository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(HMRC_RTI_EPS_Interface::class, HMRC_RTI_EPS_Repository::class);
         $this->app->bind(HMRC_RTI_EAS_Interface::class, HMRC_RTI_EAS_Repository::class);
         $this->app->bind(HMRC_VAT_Interface::class, HMRC_VAT_Repository::class);
+        $this->app->bind(Payroll_Interface::class, Payroll_Repository::class);
     }
 
     /**

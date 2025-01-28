@@ -26,35 +26,36 @@ class HMRC_RTI_FPS_Repository implements HMRC_RTI_FPS_Interface {
 
     public function employee_add($employees) {
 
-        $this->employees[] = array_merge(array(
-                'national_insurance_number' => NULL,
-                'name' => NULL,
-                'address' => NULL,
-                'birth_date' => NULL,
-                'gender' => NULL,
-                'pay_id' => NULL,
-                'to_date_taxable' => NULL,
-                'to_date_tax' => NULL,
-                'payment_frequency' => NULL,
-                'payment_date' => NULL,
-                'payment_month' => NULL,
-                'payment_periods' => NULL,
-                'payment_hours' => NULL,
-                'payment_tax_code' => NULL,
-                'payment_taxable' => NULL,
-                'payment_tax' => NULL,
-                'ni_letter' => NULL,
-                'ni_gross_nics_pd' => NULL,
-                'ni_gross_nics_ytd' => NULL,
-                'ni_total_lel_ytd' => NULL,
-                'ni_total_pt_ytd' => NULL,
-                'ni_total_uap_ytd' => NULL,
-                'ni_total_uel_ytd' => NULL,
-                'ni_total_nic_pd' => NULL,
-                'ni_total_nic_ytd' => NULL,
-                'ni_total_contribution_pd' => NULL,
-                'ni_total_contribution_ytd' => NULL,
-            ), $employees);
+        $this->employees[] =$employees;
+        //  array_merge(array(
+        //         'national_insurance_number' => NULL,
+        //         'name' => NULL,
+        //         'address' => NULL,
+        //         'birth_date' => NULL,
+        //         'gender' => NULL,
+        //         'pay_id' => NULL,
+        //         'to_date_taxable' => NULL,
+        //         'to_date_tax' => NULL,
+        //         'payment_frequency' => NULL,
+        //         'payment_date' => NULL,
+        //         'payment_month' => NULL,
+        //         'payment_periods' => NULL,
+        //         'payment_hours' => NULL,
+        //         'payment_tax_code' => NULL,
+        //         'payment_taxable' => NULL,
+        //         'payment_tax' => NULL,
+        //         'ni_letter' => NULL,
+        //         'ni_gross_nics_pd' => NULL,
+        //         'ni_gross_nics_ytd' => NULL,
+        //         'ni_total_lel_ytd' => NULL,
+        //         'ni_total_pt_ytd' => NULL,
+        //         'ni_total_uap_ytd' => NULL,
+        //         'ni_total_uel_ytd' => NULL,
+        //         'ni_total_nic_pd' => NULL,
+        //         'ni_total_nic_ytd' => NULL,
+        //         'ni_total_contribution_pd' => NULL,
+        //         'ni_total_contribution_ytd' => NULL,
+        //     ), $employees);
     }
 
     public function request_body_get_xml() {
@@ -110,6 +111,7 @@ class HMRC_RTI_FPS_Repository implements HMRC_RTI_FPS_Interface {
                                     <RelatedTaxYear>' . xml($period_range) . '</RelatedTaxYear>';
 
         foreach ($this->employees as $employee) {
+            // dd($employee);
 
             if ($this->details['year'] == 2013) {
                 if ($employee['payment_hours'] < 16) $payment_hours = 'A';
@@ -134,7 +136,6 @@ class HMRC_RTI_FPS_Repository implements HMRC_RTI_FPS_Interface {
                                             <Sur>' . xml($employee['name']['surname']) . '</Sur>
                                             </Name>
                                             <Address>';
-
             foreach ($employee['address']['lines'] as $line) {
                 $xml .= '
                                                 <Line>' . xml($line) . '</Line>';
@@ -231,17 +232,6 @@ class HMRC_RTI_FPS_Repository implements HMRC_RTI_FPS_Interface {
                         ';
 
         $xml_new= '
-                        <IRenvelope
-                            xmlns="http://www.govtalk.gov.uk/taxation/PAYE/RTI/FullPaymentSubmission/18-19/1">
-                            <IRheader>
-                                <Keys>
-                                    <Key Type="TaxOfficeNumber">619</Key>
-                                    <Key Type="TaxOfficeReference">A619</Key>
-                                </Keys>
-                                <PeriodEnd>2019-04-05</PeriodEnd>
-                                <DefaultCurrency>GBP</DefaultCurrency>
-                                <Sender>Employer</Sender>
-                            </IRheader>
                             <FullPaymentSubmission>
                                 <EmpRefs>
                                     <OfficeNo>619</OfficeNo>
@@ -305,8 +295,7 @@ class HMRC_RTI_FPS_Repository implements HMRC_RTI_FPS_Interface {
                                         </NIlettersAndValues>
                                     </Employment>
                                 </Employee>
-                            </FullPaymentSubmission>
-                        </IRenvelope>';
+                            </FullPaymentSubmission>';
 
         return $xml;
 

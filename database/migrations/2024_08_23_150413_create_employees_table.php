@@ -26,7 +26,7 @@ return new class extends Migration
             $table->date('employement_start_date')->nullable();
             $table->string('postcode');
             $table->string('address_line1');
-            $table->string('address_line2');
+            $table->string('address_line2')->nullable();
             $table->string('city');
             $table->string('country');
             $table->enum('status',['Pending Information','Active']);

@@ -12,9 +12,18 @@ use App\Models\EmployeePension;
 use App\Models\EmployeePaternityLeave;
 use App\Http\Resources\EmployeeResource;
 use Illuminate\Http\Request;
+use App\Repositories\Interfaces\Payroll_Interface;
 
 class EmployeeController extends Controller
 {
+    private $Payroll_Repository;
+
+    public function __construct(Payroll_Interface $Payroll_Repository)
+    {
+        $this->Payroll_Repository = $Payroll_Repository;
+    }
+
+
     public function getEmployees(){
         $employees = EmployeeResource::collection(
             Employee::get()
@@ -336,6 +345,9 @@ class EmployeeController extends Controller
         $employee->hourly_equivalent = $request->hourly_equivalent;
         $employee->expected_work_hours_per_week = $request->expected_work_hours_per_week;
         $employee->save();
+
+        $this->Payroll_Repository->update_payroll_calculations($id);
+        
         $response['message']='Successfully Updated Salary';
         return response()->json($response,200);
     }
@@ -398,6 +410,7 @@ class EmployeeController extends Controller
         $pension->employee_contribution = $request->employee_contribution;
         $pension->employer_contribution = $request->employer_contribution;
         $pension->save();
+        $this->Payroll_Repository->update_payroll_calculations($id);
         $response['message']='Successfully Updated Employee Pension';
         return response()->json($response,200);
     }
@@ -436,6 +449,7 @@ class EmployeeController extends Controller
         $paternity->second_block_end_date = $request->second_block_end_date;
         $paternity->average_weekly_earnings = $request->average_weekly_earnings;
         $paternity->save();
+        $this->Payroll_Repository->update_paternitypay_calculations($id);
         $response['message']='Successfully Updated Employee Paternity Leave';
         return response()->json($response,200);
     }

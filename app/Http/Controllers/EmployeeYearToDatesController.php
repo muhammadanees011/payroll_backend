@@ -4,10 +4,19 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\EmployeeYearToDates;
+use App\Models\PayrollEmployee;
 use Illuminate\Http\Request;
+use App\Services\NICCalculator;
 
 class EmployeeYearToDatesController extends Controller
 {
+    protected $nicCalculator;
+
+    public function __construct(NICCalculator $nicCalculator)
+    {
+        $this->nicCalculator = $nicCalculator;
+    }
+
     public function getEmployeeYTD($id){
         $ytd=EmployeeYearToDates::where('employee_id',$id)->first();
         return response()->json($ytd,200);
@@ -106,5 +115,105 @@ class EmployeeYearToDatesController extends Controller
 
         $response['message']='Successfully Saved';
         return response()->json($response,200);
+    }
+
+
+    public function savePayrollEmployeesYTD(Request $request){        
+        $employees = PayrollEmployee::with('employee', 'employementdetail', 'payroll', 'payschedule')
+        ->where('pay_schedule_id', $request->payschedule_id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        foreach ($employees as $employee) {
+            $ytd = EmployeeYearToDates::where('employee_id', $employee->employee_id)->first();
+            if ($ytd) {
+                
+                //TAX
+                $ytd->gross_for_tax = ($ytd->gross_for_tax ?? 0) + ($employee->gross_pay ?? 0); 
+                $ytd->tax_deducted = ($ytd->tax_deducted ?? 0) + ($employee->paye_income_tax ?? 0); 
+                $ytd->student_loan = ($ytd->student_loan ?? 0) + ($employee->student_loan ?? 0); 
+                $ytd->postgraduate_loan = ($ytd->postgraduate_loan ?? 0) + ($employee->pg_loan ?? 0);  
+                $ytd->employee_pension = ($ytd->employee_pension ?? 0) + ($employee->employee_pension ?? 0);       
+                $ytd->employer_pension = ($ytd->employer_pension ?? 0) + ($employee->employer_pension ?? 0);                
+                
+                // Statutory Payments
+                $ytd->statutory_maternity_pay = ($ytd->statutory_maternity_pay ?? 0) + 0;  //this
+                $ytd->statutory_paternity_pay = ($ytd->statutory_paternity_pay ?? 0) + ($employee->paternity_pay ?? 0);  
+                $ytd->statutory_adoption_pay = ($ytd->statutory_adoption_pay ?? 0) + 0;    //this      
+                $ytd->statutory_sick_pay = ($ytd->statutory_sick_pay ?? 0) + ($employee->sick_pay ?? 0); 
+                $ytd->parental_bereavement = ($ytd->parental_bereavement ?? 0) + 0;   //this       
+                $ytd->shared_parental_pay = ($ytd->shared_parental_pay ?? 0) + 0;  //this
+
+                // National Insurance
+                $ytd->national_insurance_category = $employee->employee->ni_category ?? null;
+                $ytd->earnings_at_LEL = ($ytd->earnings_at_LEL ?? 0) + $this->nicCalculator->calculateLEL($employee->gross_pay, $employee->payschedule->pay_frequency);
+                $ytd->earnings_at_PT = ($ytd->earnings_at_PT ?? 0) + $this->nicCalculator->calculatePT($employee->gross_pay, $employee->payschedule->pay_frequency);
+                $ytd->earnings_to_UEL = ($ytd->earnings_to_UEL ?? 0) + $this->nicCalculator->calculateUEL($employee->gross_pay, $employee->payschedule->pay_frequency);
+                $ytd->employee_national_insurance = ($ytd->employee_national_insurance ?? 0) + ($employee->employee_nic ?? 0);
+                $ytd->employer_national_insurance = ($ytd->employer_national_insurance ?? 0) + ($employee->employer_nic ?? 0);
+                $ytd->gross_pay_for_national_insurance = ($ytd->gross_pay_for_national_insurance ?? 0) + ($employee->gross_pay ?? 0);        
+
+                if($employee->employementdetail->date_appointed_director &&
+                    $employee->employementdetail->date_ended_director &&
+                    $employee->employementdetail->date_ended_director <= $employee->payroll->pay_date
+                  ){
+                // National Insurance Director
+                    $ytd->director_earnings_at_LEL = ($ytd->director_earnings_at_LEL?? 0) + $this->nicCalculator->calculateLEL($employee->gross_pay, $employee->payschedule->pay_frequency);  
+                    $ytd->director_earnings_to_PT = ($ytd->director_earnings_to_PT?? 0) + $this->nicCalculator->calculatePT($employee->gross_pay, $employee->payschedule->pay_frequency);          
+                    $ytd->director_earnings_to_UEL = ($ytd->director_earnings_to_UEL?? 0) + $this->nicCalculator->calculateUEL($employee->gross_pay, $employee->payschedule->pay_frequency); 
+                    $ytd->director_national_insurance = ($ytd->director_national_insurance?? 0) + ($employee->employee_nic ?? 0);
+                    $ytd->director_employer_national_insurance = ($ytd->director_employer_national_insurance?? 0) + ($employee->employer_nic ?? 0); 
+                    $ytd->director_gross_pay_for_national_insurance = ($ytd->director_gross_pay_for_national_insurance?? 0) + ($employee->gross_pay ?? 0);
+                }
+
+                $ytd->save();
+            } else {
+                $ytd = new EmployeeYearToDates();
+                $ytd->employee_id = $employee->employee_id;
+
+                //TAX
+                $ytd->gross_for_tax = $employee->gross_pay ?? 0; 
+                $ytd->tax_deducted = $employee->paye_income_tax ?? 0; 
+                $ytd->student_loan = $employee->student_loan ?? 0; 
+                $ytd->postgraduate_loan = $employee->pg_loan ?? 0;  
+                $ytd->employee_pension = $employee->employee_pension ?? 0;       
+                $ytd->employer_pension = $employee->employer_pension ?? 0;                
+                
+                // Statutory Payments
+                $ytd->statutory_maternity_pay = 0;  //this
+                $ytd->statutory_paternity_pay = $employee->paternity_pay ?? 0;  
+                $ytd->statutory_adoption_pay = 0;    //this      
+                $ytd->statutory_sick_pay = $employee->sick_pay ?? 0; 
+                $ytd->parental_bereavement = 0;   //this       
+                $ytd->shared_parental_pay = 0;  //this
+
+                // National Insurance
+                $ytd->national_insurance_category = $employee->employee->ni_category ?? null;
+                $ytd->earnings_at_LEL = $this->nicCalculator->calculateLEL($employee->gross_pay, $employee->payschedule->pay_frequency);
+                $ytd->earnings_at_PT = $this->nicCalculator->calculatePT($employee->gross_pay, $employee->payschedule->pay_frequency);
+                $ytd->earnings_to_UEL = $this->nicCalculator->calculateUEL($employee->gross_pay, $employee->payschedule->pay_frequency);
+                $ytd->employee_national_insurance = $employee->employee_nic ?? 0;
+                $ytd->employer_national_insurance = $employee->employer_nic ?? 0;
+                $ytd->gross_pay_for_national_insurance = $employee->gross_pay ?? 0;        
+
+                if($employee->employementdetail->date_appointed_director &&
+                    $employee->employementdetail->date_ended_director &&
+                    $employee->employementdetail->date_ended_director <= $employee->payroll->pay_date
+                    ){
+                // National Insurance Director
+                    $ytd->director_earnings_at_LEL = $this->nicCalculator->calculateLEL($employee->gross_pay, $employee->payschedule->pay_frequency);  
+                    $ytd->director_earnings_to_PT =  $this->nicCalculator->calculatePT($employee->gross_pay, $employee->payschedule->pay_frequency);          
+                    $ytd->director_earnings_to_UEL = $this->nicCalculator->calculateUEL($employee->gross_pay, $employee->payschedule->pay_frequency); 
+                    $ytd->director_national_insurance = $employee->employee_nic ?? 0;
+                    $ytd->director_employer_national_insurance = $employee->employer_nic ?? 0; 
+                    $ytd->director_gross_pay_for_national_insurance = $employee->gross_pay ?? 0;
+                }
+
+                $ytd->save();
+            }
+            
+        }
+
+        return response()->json('saved',200);
     }
 }

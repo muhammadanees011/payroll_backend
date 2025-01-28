@@ -28,4 +28,8 @@ class PayrollEmployee extends Model
     public function employeestarterdetail(){
         return $this->hasOne(EmployeeStarterDetail::class,'employee_id','employee_id');
     }
+
+    public function employeeytd(){
+        return $this->hasOne(EmployeeYearToDates::class,'employee_id','employee_id');
+    }
 }

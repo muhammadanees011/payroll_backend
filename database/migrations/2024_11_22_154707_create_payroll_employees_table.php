@@ -29,7 +29,12 @@ return new class extends Migration
             $table->double('employee_pension')->nullable();
             $table->double('employer_nic')->nullable();
             $table->double('employer_pension')->nullable();
+            $table->double('student_loan')->nullable();
+            $table->double('pg_loan')->nullable();
+            $table->double('sick_pay')->nullable();
+            $table->double('paternity_pay')->nullable();
             $table->enum('salary_type',['Salaried','Hourly']);
+            $table->enum('status',['active','archived','history'])->default('active');
             $table->timestamps();
         });
     }

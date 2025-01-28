@@ -10,6 +10,7 @@ class Connection
     protected $exitOnError;
     protected $headers;
     protected $response;
+    protected $response_code;
 
     public function __construct()
     {
@@ -65,10 +66,9 @@ class Connection
      */
     public function post($url, $data)
     {
-
         $curl = curl_init();
         curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://test-transaction-engine.tax.service.gov.uk/submission',
+        CURLOPT_URL => $url,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -78,31 +78,16 @@ class Connection
         CURLOPT_CUSTOMREQUEST => 'POST',
         CURLOPT_POSTFIELDS => ''.$data.'',
         CURLOPT_HTTPHEADER => array(
-            'Content-Type: application/xml'
+            'Content-Type: application/xml',
         ),
         ));
         $response = curl_exec($curl);
+        $this->response=$response;
+        $this->response_code= curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
-        echo $response;
-
-        echo $data;
+        return $response;
+        // echo $data;
         exit();
-        try {
-            $this->response = Http::withHeaders($this->headers)
-                ->timeout($this->timeout)
-                ->post($url, [$data]);
-
-            if ($this->response->failed() && $this->exitOnError) {
-                $this->exit_with_error('HTTP request failed.', $this->response->body());
-            }
-
-        } catch (\Exception $e) {
-            if ($this->exitOnError) {
-                $this->exit_with_error('Exception during HTTP request.', $e->getMessage());
-            }
-        }
-
-        return $this;
     }
 
     /**
@@ -112,7 +97,7 @@ class Connection
      */
     public function response_code_get()
     {
-        return $this->response ? $this->response->status() : null;
+        return $this->response_code ? $this->response_code : null;
     }
 
     /**
@@ -122,7 +107,7 @@ class Connection
      */
     public function response_full_get()
     {
-        return $this->response ? $this->response->body() : null;
+        return $this->response ? $this->response : null;
     }
 
     /**
@@ -132,7 +117,7 @@ class Connection
      */
     public function response_data_get()
     {
-        return $this->response ? $this->response->body() : null;
+        return $this->response ? $this->response : null;
     }
 
     /**

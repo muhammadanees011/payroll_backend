@@ -16,7 +16,12 @@ return new class extends Migration
             $table->string('payment_plan')->nullable();
             $table->string('plan_description')->nullable();
             $table->double('annual_threshold')->nullable();
+            $table->double('monthly_threshold')->nullable();
+            $table->double('weekly_threshold')->nullable();
+            $table->double('fortnightly_threshold')->nullable();
+            $table->double('fourweekly_threshold')->nullable();
             $table->integer('repay_percentage')->nullable();
+            $table->enum('type',['student_loan','pg_loan']);
             $table->timestamps();
         });
     }

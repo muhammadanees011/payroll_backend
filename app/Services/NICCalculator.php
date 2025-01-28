@@ -60,6 +60,8 @@ class NICCalculator
 
         $pt = $thresholds['primary'];
         $uel = $thresholds['upper'];
+        $st = $thresholds['secondary'];
+        $aust = $thresholds['apprentice'];
 
         if ($grossEarnings <= $pt) {
             return 0;
@@ -131,5 +133,69 @@ class NICCalculator
 
         // Convert tax to the selected frequency
         return $frequency === 'Weekly' ? $tax / 52 : $tax / 12;
+    }
+
+
+    //Calculate Lower Earning Limit (LEL)
+    public function calculateLEL($grosspay,$payfrequency){
+        $annual_LEL = 6396;
+        $Monthly_LEL = $annual_LEL/12;
+        $Weekly_LEL = $annual_LEL/52;
+        $Fortnightly_LEL = $annual_LEL/26;
+        $FourWeekly_LEL = $annual_LEL/13;
+
+        if($payfrequency == 'Monthly' && $grosspay >= $Monthly_LEL ){
+            return $Monthly_LEL;
+        }else if($payfrequency == 'Weekly' && $grosspay >= $Weekly_LEL){
+            return $Weekly_LEL;
+        }else if($payfrequency == 'Fortnightly' && $grosspay >= $Fortnightly_LEL){
+            return $Fortnightly_LEL;
+        }else if($payfrequency == 'Four Weekly' && $grosspay >= $FourWeekly_LEL){
+            return $FourWeekly_LEL;
+        }else{
+            return 0;
+        }
+    }
+
+    //Calculate Primary Threshold (PT)
+    public function calculatePT($grosspay,$payfrequency){
+        $annual_PT = 12570;
+        $Monthly_PT = $annual_PT/12;
+        $Weekly_PT = $annual_PT/52;
+        $Fortnightly_PT = $annual_PT/26;
+        $FourWeekly_PT = $annual_PT/13;
+
+        if($payfrequency == 'Monthly' && $grosspay >= $Monthly_PT ){
+            return $Monthly_PT;
+        }else if($payfrequency == 'Weekly' && $grosspay >= $Weekly_PT){
+            return $Weekly_PT;
+        }else if($payfrequency == 'Fortnightly' && $grosspay >= $Fortnightly_PT){
+            return $Fortnightly_PT;
+        }else if($payfrequency == 'Four Weekly' && $grosspay >= $FourWeekly_PT){
+            return $FourWeekly_PT;
+        }else{
+            return 0;
+        }
+    }
+
+    //Calculate Upper Earnings Limit (UEL)
+    public function calculateUEL($grosspay,$payfrequency){
+        $annual_UEL = 50270;
+        $Monthly_UEL = $annual_UEL/12;
+        $Weekly_UEL = $annual_UEL/52;
+        $Fortnightly_UEL = $annual_UEL/26;
+        $FourWeekly_UEL = $annual_UEL/13;
+
+        if($payfrequency == 'Monthly' && $grosspay >= $Monthly_UEL ){
+            return $Monthly_UEL;
+        }else if($payfrequency == 'Weekly' && $grosspay >= $Weekly_UEL){
+            return $Weekly_UEL;
+        }else if($payfrequency == 'Fortnightly' && $grosspay >= $Fortnightly_UEL){
+            return $Fortnightly_UEL;
+        }else if($payfrequency == 'Four Weekly' && $grosspay >= $FourWeekly_UEL){
+            return $FourWeekly_UEL;
+        }else{
+            return 0;
+        }
     }
 }

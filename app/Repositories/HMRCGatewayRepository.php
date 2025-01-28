@@ -17,6 +17,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
     protected $hmrc_RTI_FPS_Repository;
     protected $HMRC_RTI_Repository;
 
+    private $debug_irmark;
     private $log_db = NULL;
     private $log_table_sql = NULL;
     private $gateway_live = false;
@@ -131,23 +132,24 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
             $message->message_live_set($this->gateway_live);
             $message->message_keys_set($this->message_keys_get());
             $message->body_set_xml($body_xml);
-       
 
         //--------------------------------------------------
         // Send
-            $this->_send($message);
+            $res=$this->_send($message);
+            // return $res;
         //--------------------------------------------------
         // Response
 
             if ($this->response_qualifier == 'acknowledgement') {
 
-                $interval = strval($this->response_object->Header->MessageDetails->ResponseEndPoint['PollInterval']);
+
+                $interval = strval($this->response_object->Header->MessageDetails->ResponseEndPoint->_PollInterval);
 
                 return array(
                         'class' => $this->message_class,
                         'correlation' => $this->response_correlation,
                         'transaction' => $this->message_transation, // Node is blank in response for some reason.
-                        'endpoint' => strval($this->response_object->Header->MessageDetails->ResponseEndPoint),
+                        'endpoint' => strval($this->response_object->Header->MessageDetails->ResponseEndPoint->__text),
                         'timeout' => (time() + $interval),
                         'status' => NULL,
                         'response' => NULL,
@@ -160,7 +162,6 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
     }
 
     public function request_list($message_class) {
-
         //--------------------------------------------------
         // Message class
 
@@ -173,7 +174,6 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         // Setup message
 
             $this->gateway_url = $this->submission_url_get();
-
             $body_xml = ''; // or could be '<IncludeIdentifiers>1</IncludeIdentifiers>'
 
             $message = $this->hmrcGatewayMessageRepository;
@@ -186,7 +186,6 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
 
         //--------------------------------------------------
         // Send
-
         $this->_send($message);
 
         //--------------------------------------------------
@@ -218,10 +217,8 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
     }
 
     public function request_poll($request, $return_error = false) {
-
         //--------------------------------------------------
         // Honour timeout
-
             $timeout = ($request['timeout'] - time());
             if ($timeout > 0) {
                 sleep($timeout);
@@ -232,17 +229,18 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
 
             $this->message_class = $request['class'];
             $this->gateway_url = $this->poll_url_get(); // $request['endpoint'] - Does not work with the values from request_list()
-
             $message = $this->hmrcGatewayMessageRepository;
             $message->vendor_set($this->vendor_code, $this->vendor_name);
             $message->message_qualifier_set('poll');
             $message->message_function_set('submit');
             $message->message_correlation_set($request['correlation']);
+            $message->body_set_xml('');
 
         //--------------------------------------------------
         // Send
-
-            $this->_send($message);
+            $res=$this->_send($message);
+            // return $this->debug_irmark;
+            return $this->response_object;
 
         //--------------------------------------------------
         // Result
@@ -334,7 +332,6 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
     }
 
     public function _send($message) {
-
         //--------------------------------------------------
         // Message details
 
@@ -348,7 +345,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
 
         //--------------------------------------------------
         // IRMark
-
+        // return $message_xml;
         if (preg_match('/(<IRmark Type="generic">)[^<]*(<\/IRmark>)/', $message_xml, $matches)) {
 
             $message_xml_clean = str_replace($matches[0], '', $message_xml);
@@ -358,21 +355,20 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
             } else {
                 $message_namespace = '';
             }
-
             $message_xml_clean = preg_replace('/^.*<Body>(.*)<\/Body>.*$/s', '<Body' . $message_namespace . '>$1</Body>', $message_xml_clean);
-
+            // return $message_xml_clean;
             $message_xml_dom = new DOMDocument;
             $message_xml_dom->loadXML($message_xml_clean);
-            $message_xml_dom->preserveWhiteSpace=FALSE;
-            $message_irmark = base64_encode(sha1($message_xml_dom->documentElement->C14N(), true));
+            $message_irmark = base64_encode(sha1($message_xml_dom->documentElement->C14N(),true));
+            $this->debug_irmark=$message_irmark;
             $message_xml = str_replace($matches[0], $matches[1] . $message_irmark . $matches[2], $message_xml);
+            // return $message_xml;
 
         } else {
 
             $message_irmark = NULL;
 
         }
-
         //--------------------------------------------------
         // Validation
 
@@ -392,7 +388,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         }
 
         //--------------------------------------------------
-
+        // return $message_xml_clean;
         // Log create
         $log=new RTILog();
         $log->request_url=$this->gateway_url;
@@ -415,54 +411,53 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         header('Content-Type: text/xml; charset=UTF-8');
         // exit($message_xml);
         
-        $dom = new \DOMDocument();
-        $dom->preserveWhiteSpace = false; // This removes extra whitespaces
-        $dom->formatOutput = true; // This makes it pretty/indented
+        $dom = new DOMDocument();
         $dom->loadXML($message_xml);        
-        // Get the formatted XML as a string
         $message_xml = $dom->saveXML();
         $dom->save("xml/fps.xml");
 
         // echo $message_xml;
-        // exit();
-
         // dd($message_xml);
+
         $send_result = $connection->post($this->gateway_url, $message_xml);
         if (!$send_result) {
             exit_with_error('Could not connect to HMRC', $connection->error_message_get() . "\n\n" . $connection->error_details_get());
         }
-
         if ($connection->response_code_get() != 200) {
             exit_with_error('Invalid HTTP response from HMRC', $connection->response_full_get());
         }
         $this->response_string = $connection->response_data_get();
-        $this->response_object = simplexml_load_string($this->response_string);
+
+        $xml = new \SimpleXMLElement($this->response_string);
+        $res_data= $this->parseXmlToObject($xml);
+        $this->response_object= $res_data;
+
         $this->response_debug = $this->gateway_url . "\n\n" . $message_xml . "\n\n" . $this->response_string;
-        //--------------------------------------------------
-        // Parse XML
-        if (true) {
-            header('Content-Type: text/xml; charset=UTF-8');
-            exit($this->response_string);
-        } else {
-            $dom_sxe = dom_import_simplexml($this->response_object);
-            $dom = new DOMDocument('1.0');
-            $dom_sxe = $dom->importNode($dom_sxe, true);
-            $dom_sxe = $dom->appendChild($dom_sxe);
-            $dom->preserveWhiteSpace = false;
-            $dom->formatOutput = true;
-            echo $dom->saveXML() . "\n--------------------------------------------------\n\n";
-            exit();
-        }
+        // //--------------------------------------------------
+        // // Parse XML
+        // if (true) {
+        //     header('Content-Type: text/xml; charset=UTF-8');
+        //     exit($this->response_string);
+        // } else {
+        //     $dom_sxe = dom_import_simplexml($this->response_object);
+        //     $dom = new DOMDocument('1.0');
+        //     $dom_sxe = $dom->importNode($dom_sxe, true);
+        //     $dom_sxe = $dom->appendChild($dom_sxe);
+        //     $dom->preserveWhiteSpace = false;
+        //     $dom->formatOutput = true;
+        //     echo $dom->saveXML() . "\n--------------------------------------------------\n\n";
+        //     exit();
+        // }
         //--------------------------------------------------
         // Update log
         $log->response_xml=$this->response_string;
         $log->save();
 
-        // dd($this->response_debug);
         //--------------------------------------------------
         // Extract details
-
+        // return $this->response_object;
         if (isset($this->response_object->Header->MessageDetails->Qualifier)) {
+            
             $this->response_qualifier = strval($this->response_object->Header->MessageDetails->Qualifier);
         } else {
             exit_with_error('Invalid response from HMRC (qualifier)', $this->response_debug);
@@ -505,4 +500,78 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         }
 
     }
+
+    // function parseXmlToObject($xml)
+    // {
+    //     $result = new \stdClass();
+
+    //     // Add attributes as properties
+    //     foreach ($xml->attributes() as $key => $value) {
+    //         $result->{"_$key"} = (string)$value;
+    //     }
+
+    //     // Add children elements
+    //     foreach ($xml->children() as $key => $child) {
+    //         $parsedChild = $this->parseXmlToObject($child);
+
+    //         // If multiple children with the same key, convert to array
+    //         if (isset($result->$key)) {
+    //             if (!is_array($result->$key)) {
+    //                 $result->$key = [$result->$key];
+    //             }
+    //             $result->{$key}[] = $parsedChild;
+    //         } else {
+    //             $result->$key = $parsedChild;
+    //         }
+    //     }
+
+    //     // Add the text content
+    //     $textContent = trim((string)$xml);
+    //     if (!empty($textContent)) {
+    //         $result->__text = $textContent;
+    //     }
+
+    //     return $result;
+    // }
+
+    function parseXmlToObject($xml)
+    {
+        $result = new \stdClass();
+        // Add attributes as properties
+        foreach ($xml->attributes() as $key => $value) {
+            $result->{"_$key"} = (string)$value;
+        }
+        // Add children elements
+        foreach ($xml->children() as $key => $child) {
+            $parsedChild = $this->parseXmlToObject($child);
+            // If multiple children with the same key, convert to array
+            if (isset($result->$key)) {
+                if (!is_array($result->$key)) {
+                    $result->$key = [$result->$key];
+                }
+                $result->{$key}[] = $parsedChild;
+            } else {
+                $result->$key = $parsedChild;
+            }
+        }
+        // Add the text content
+        $textContent = trim((string)$xml);
+        if (!empty($textContent)) {
+            // If there are attributes or multiple children, use "__text"
+            if (count((array)$result) > 0) {
+                $result->__text = $textContent;
+            } else {
+                // If it's a simple text-only node, return the text directly
+                return $textContent;
+            }
+        }
+        // If there is only one child element and no attributes, return it directly
+        if (count((array)$result) === 1 && isset($result->__text)) {
+            return $result->__text;
+        }
+
+        return $result;
+    }
+
+    
 }
