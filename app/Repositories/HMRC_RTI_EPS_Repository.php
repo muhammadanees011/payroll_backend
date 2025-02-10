@@ -3,12 +3,28 @@
 namespace App\Repositories;
 
 use App\Repositories\Interfaces\HMRC_RTI_EPS_Interface;
+use App\Repositories\Interfaces\HMRC_RTI_Interface;
 
 class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
     private $employees = [];
+    private $details;
+    private $eps_data;
 
     public function message_class_get() {
         return 'HMRC-PAYE-RTI-EPS';
+    }
+
+    public function __construct(HMRC_RTI_Interface $HMRC_RTI_Repository) {
+        $this->HMRC_RTI_Repository=$HMRC_RTI_Repository;
+    }
+
+    public function details_set($details){
+        $this->details=$details;
+        $this->HMRC_RTI_Repository->details_set($details);
+    }
+
+    public function data_set($data){
+        $this->eps_data=$data;
     }
 
     public function request_body_get_xml() {
@@ -45,7 +61,7 @@ class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
         $period_range = $period_range . '-' . ($period_range + 1);
 
         $xml = '
-                <IRenvelope xmlns="' . xml($namespace) . '">' . $this->request_header_get_xml() . '
+                <IRenvelope xmlns="' . xml($namespace) . '">' . $this->HMRC_RTI_Repository->request_header_get_xml() . '
                     <EmployerPaymentSummary>
                         <EmpRefs>
                             <OfficeNo>' . xml($this->details['tax_office_number']) . '</OfficeNo>
@@ -69,17 +85,15 @@ class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
 
             $xml .= '
                         <RecoverableAmountsYTD>
-                            <SSPRecovered>'          . xml($this->details['XXX']) . '</SSPRecovered>
-                            <SMPRecovered>'          . xml($this->details['XXX']) . '</SMPRecovered>
-                            <SPPRecovered>'          . xml($this->details['XXX']) . '</SPPRecovered>
-                            <SAPRecovered>'          . xml($this->details['XXX']) . '</SAPRecovered>
-                            <ShPPRecovered>'         . xml($this->details['XXX']) . '</ShPPRecovered>
-                            <NICCompensationOnSMP>'  . xml($this->details['XXX']) . '</NICCompensationOnSMP>
-                            <NICCompensationOnSPP>'  . xml($this->details['XXX']) . '</NICCompensationOnSPP>
-                            <NICCompensationOnSAP>'  . xml($this->details['XXX']) . '</NICCompensationOnSAP>
-                            <NICCompensationOnShPP>' . xml($this->details['XXX']) . '</NICCompensationOnShPP>
-                            <CISDeductionsSuffered>' . xml($this->details['XXX']) . '</CISDeductionsSuffered>
-                            <NICsHoliday>'           . xml($this->details['XXX']) . '</NICsHoliday>
+                            <SMPRecovered>'          . xml($this->eps_data['SMP_Recovered']) . '</SMPRecovered>
+                            <SPPRecovered>'          . xml($this->eps_data['SPP_Recovered']) . '</SPPRecovered>
+                            <SAPRecovered>'          . xml($this->eps_data['SAP_Recovered']) . '</SAPRecovered>
+                            <ShPPRecovered>'         . xml($this->eps_data['ShPP_Recovered']) . '</ShPPRecovered>
+                            <NICCompensationOnSMP>'  . xml($this->eps_data['NIC_CompensationOnSMP']) . '</NICCompensationOnSMP>
+                            <NICCompensationOnSPP>'  . xml($this->eps_data['NIC_CompensationOnSPP']) . '</NICCompensationOnSPP>
+                            <NICCompensationOnSAP>'  . xml($this->eps_data['NIC_CompensationOnSAP']) . '</NICCompensationOnSAP>
+                            <NICCompensationOnShPP>' . xml($this->eps_data['NIC_CompensationOnShPP']) . '</NICCompensationOnShPP>
+                            <CISDeductionsSuffered>' . xml($this->eps_data['CIS_DeductionsSuffered']) . '</CISDeductionsSuffered>
                         </RecoverableAmountsYTD>';
 
         }
@@ -104,12 +118,12 @@ class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
 
                 $xml .= '
                         <QuestionsAndDeclarations>
-                            <FreeOfTaxPaymentsMadeToEmployee>'              . xml($this->details['final']['free_of_tax_payments']         ? 'yes' : 'no') . '</FreeOfTaxPaymentsMadeToEmployee>
-                            <ExpensesVouchersOrBenefitsFromOthers>'         . xml($this->details['final']['expenses_and_benefits']        ? 'yes' : 'no') . '</ExpensesVouchersOrBenefitsFromOthers>
-                            <PersonEmployedOutsideUKWorkedFor30DaysOrMore>' . xml($this->details['final']['employees_out_of_uk']          ? 'yes' : 'no') . '</PersonEmployedOutsideUKWorkedFor30DaysOrMore>
-                            <PayToSomeoneElse>'                             . xml($this->details['final']['employees_pay_to_third_party'] ? 'yes' : 'no') . '</PayToSomeoneElse>
-                            <P11DFormsDue>'                                 . xml($this->details['final']['p11d_forms_due']               ? 'yes' : 'no') . '</P11DFormsDue>
-                            <ServiceCompany>'                               . xml($this->details['final']['service_company']              ? 'yes' : 'no') . '</ServiceCompany>
+                            <FreeOfTaxPaymentsMadeToEmployee>'              . xml($this->eps_data['final']['free_of_tax_payments']         ? 'yes' : 'no') . '</FreeOfTaxPaymentsMadeToEmployee>
+                            <ExpensesVouchersOrBenefitsFromOthers>'         . xml($this->eps_data['final']['expenses_and_benefits']        ? 'yes' : 'no') . '</ExpensesVouchersOrBenefitsFromOthers>
+                            <PersonEmployedOutsideUKWorkedFor30DaysOrMore>' . xml($this->eps_data['final']['employees_out_of_uk']          ? 'yes' : 'no') . '</PersonEmployedOutsideUKWorkedFor30DaysOrMore>
+                            <PayToSomeoneElse>'                             . xml($this->eps_data['final']['employees_pay_to_third_party'] ? 'yes' : 'no') . '</PayToSomeoneElse>
+                            <P11DFormsDue>'                                 . xml($this->eps_data['final']['p11d_forms_due']               ? 'yes' : 'no') . '</P11DFormsDue>
+                            <ServiceCompany>'                               . xml($this->eps_data['final']['service_company']              ? 'yes' : 'no') . '</ServiceCompany>
                         </QuestionsAndDeclarations>';
 
             }
@@ -121,10 +135,14 @@ class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
         }
 
         $xml .= '
-                    </FullPaymentSubmission>
+                    </EmployerPaymentSummary>
                 </IRenvelope>';
 
         return $xml;
 
     }
 }
+
+
+// <NICsHoliday>'           . xml($this->eps_data['NIC_sHoliday']) . '</NICsHoliday>
+// <SSPRecovered>'          . xml($this->eps_data['SSP_Recovered']) . '</SSPRecovered>

@@ -6,16 +6,25 @@ use Illuminate\Http\Request;
 use App\Repositories\Interfaces\HMRCGatewayInterface;
 use App\Repositories\Interfaces\HMRCGatewayMessageInterface;
 use App\Repositories\Interfaces\HMRC_RTI_FPS_Interface;
+use App\Repositories\Interfaces\HMRC_RTI_EPS_Interface;
 use App\Repositories\Interfaces\HMRC_RTI_Interface;
 use App\Models\RTILog;
 use App\Http\Resources\FPSEmployeesResource;
 use App\Models\PayrollEmployee;
+use App\Models\Payroll;
+use App\Models\EmployeePayItem;
+use App\Models\EPSSubmission;
+use App\Models\FPSSubmission;
+use App\Models\HMRCSetting;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Validator;
 
 class HMRCRealTimeInformationController extends Controller
 {
     private $hmrcGatewayRepository;
     private $hmrcGatewayMessageRepository;
     private $HMRC_RTI_FPS_Repository;
+    private $HMRC_RTI_EPS_Repository;
     private $HMRC_RTI_Repository;
 
     private $config_sender_name = 'ISV635';
@@ -30,17 +39,20 @@ class HMRCRealTimeInformationController extends Controller
     HMRCGatewayInterface $hmrcGatewayRepository,
     HMRCGatewayMessageInterface $hmrcGatewayMessageRepository,
     HMRC_RTI_FPS_Interface $HMRC_RTI_FPS_Repository,
+    HMRC_RTI_EPS_Interface $HMRC_RTI_EPS_Repository,
     HMRC_RTI_Interface $HMRC_RTI_Repository
      ) {
         $this->hmrcGatewayRepository = $hmrcGatewayRepository;
         $this->hmrcGatewayMessageRepository = $hmrcGatewayMessageRepository;
         $this->HMRC_RTI_FPS_Repository = $HMRC_RTI_FPS_Repository;
+        $this->HMRC_RTI_EPS_Repository = $HMRC_RTI_EPS_Repository;
         $this->HMRC_RTI_Repository = $HMRC_RTI_Repository;
     }
 
-    public function examplePaye(){
+    public function submitFPS($payroll){
+        $fps_submission_status=false;
         $example_employee = $this->getEmployeesData();
-        $example_employee = $example_employee[0] ? $example_employee[0] :[];
+        $example_employee = $example_employee ? $example_employee :[];
     
         $hmrc_gateway = $this->hmrcGatewayRepository;
         $hmrc_gateway->live_set(false, true); //for live it is false and for test it is true
@@ -50,9 +62,11 @@ class HMRCRealTimeInformationController extends Controller
     
         // Pending requests
         // $requests = $hmrc_gateway->request_list('HMRC-PAYE-RTI-FPS');
+        // // return $requests;
         // if (count($requests) > 0) {
         //     foreach ($requests as $request) {
-        //     	$hmrc_gateway->request_delete($request);
+        //     	$res=$hmrc_gateway->request_delete($request);
+        //         return $res;
         //     }
 
         //     foreach ($requests as $request) {
@@ -174,21 +188,54 @@ class HMRCRealTimeInformationController extends Controller
 
          $hmrc_rti->employee_add($example_employee);
 
-        // $xml = $hmrc_rti->request_body_get_xml();
+        // return $hmrc_rti->request_body_get_xml();
 
         //--------------------------------------------------
         // Send and poll for response
-
+        $fps_status=false;
         $request = $hmrc_gateway->request_submit($hmrc_rti);
         // return $request;
+
+        $FPSSubmission=new FPSSubmission();
+        $FPSSubmission->payroll_id=$payroll->id;
+        $FPSSubmission->tax_period=$payroll->tax_period;
+        $FPSSubmission->pay_run_start_date=$payroll->pay_run_start_date;
+        $FPSSubmission->pay_run_end_date=$payroll->pay_run_end_date;
+        $currentDate = Carbon::today();
+        $FPSSubmission->submission_date=$currentDate;
+        $FPSSubmission->submission_xml=$request['filename'];
+        $FPSSubmission->status='Accepted';
+        $FPSSubmission->save();
 
         $k = 0;
 
         while ($request['status'] === NULL && $k++ < 5) {
             $request = $hmrc_gateway->request_poll($request);
             // print_r($request);
-            return $request;
+            // return $request;
+            if ($request && isset($request->Body->SuccessResponse)) {
+                $fps_status=true;
+                $FPSSubmission->response_xml=$request['filename'];
+                $FPSSubmission->save();
+                return [
+                    'request' => $request,
+                    'fps_submission_status'  => $fps_status
+                ];
+            }else if ($request && isset($request['response'])) {
+                $fps_status=true;
+                $FPSSubmission->response_xml=$request['filename'];
+                $FPSSubmission->save();
+                return [
+                    'request' => $request,
+                    'fps_submission_status'  => $fps_status
+                ];
+            }
         }
+        // $fps_submission_status=false;
+        return [
+            'request' => $request,
+            'fps_submission_status'  => false
+        ];
         // return $request;
         if ($request['status'] === NULL) {
             exit('Stopped waiting for a response after several attempts.');
@@ -210,8 +257,96 @@ class HMRCRealTimeInformationController extends Controller
         // 		'class' => 'HMRC-PAYE-RTI-EAS',
         // 		'correlation' => 'DF64ED198BEB43178A0C6A3CCE7D389C',
         // 	]);
+
     }
 
+    public function submitEPS(Request $request){
+        // return $request;
+        $eps_data = $this->getEPSData();
+        $hmrc_gateway = $this->hmrcGatewayRepository;
+        $hmrc_gateway->live_set(false, true); //for live it is false and for test it is true
+        // $hmrc_gateway->log_table_set($db, DB_PREFIX . 'table_name');
+        $hmrc_gateway->vendor_set('9136', 'XEPayroll');
+        $hmrc_gateway->sender_set($this->config_sender_name, $this->config_sender_pass, $this->config_sender_email);
+        $final = false; // e.g. ($payment_month == 12)
+
+        // Create request
+        $this->hmrcGatewayRepository->details_set([
+            'year' => 2024,
+            'final' => $final,
+            'tax_office_number' => $this->config_tax_office_number,
+            'tax_office_reference' => $this->config_tax_office_reference,
+            'accounts_office_reference' => $this->config_accounts_office_reference,
+            'corporation_tax_reference' => $this->config_corporation_tax_reference,
+        ]);
+
+        $hmrc_eps = $this->HMRC_RTI_EPS_Repository; // Employer Payment Summary
+
+        $hmrc_eps->details_set([
+            'year' => 2024,
+            'final' => $final,
+            'tax_office_number' => $this->config_tax_office_number,
+            'tax_office_reference' => $this->config_tax_office_reference,
+            'accounts_office_reference' => $this->config_accounts_office_reference,
+            'corporation_tax_reference' => $this->config_corporation_tax_reference,
+        ]);
+
+
+        $hmrc_eps->data_set($eps_data);
+        // return $hmrc_eps->request_body_get_xml();
+
+        //--------------------------------------------------
+        // Send and poll for response
+
+        $request_submit = $hmrc_gateway->request_submit($hmrc_eps);
+        // return $request_submit;
+
+        $EPSSubmission=new EPSSubmission();
+        $EPSSubmission->type=$request->type;
+        $EPSSubmission->status='Accepted';
+        $EPSSubmission->tax_year=$request->tax_year;
+        $EPSSubmission->tax_month=$request->period['code'];
+        $currentDate = Carbon::today();
+        $EPSSubmission->submission_date=$currentDate;
+        $EPSSubmission->submission_xml=$request_submit['filename'];
+        $EPSSubmission->save();
+
+        $k = 0;
+
+        while ($request_submit['status'] === NULL && $k++ < 5) {
+            $request_submit = $hmrc_gateway->request_poll($request_submit);
+            // print_r($request_submit);
+            // return $request_submit;
+            if ($request_submit && isset($request_submit->Body->SuccessResponse)) {
+                $eps_status=true;
+                return [
+                    'request' => $request_submit,
+                    'fps_submission_status'  => $eps_status
+                ];
+            }else if ($request_submit && isset($request_submit['response'])) {
+                $eps_status=true;
+                $EPSSubmission->response_xml=$request_submit['filename'];
+                $EPSSubmission->save();
+                return [
+                    'request' => $request_submit,
+                    'fps_submission_status'  => $eps_status
+                ];
+            }
+        }
+
+        $eps_submission_status=false;
+        return $eps_submission_status;
+        // return $request_submit;
+        if ($request_submit['status'] === NULL) {
+            exit('Stopped waiting for a response after several attempts.');
+        }
+
+        //--------------------------------------------------
+        // Delete request
+
+        $hmrc_gateway->request_delete($request_submit);
+
+    }
 
     public function getEmployeesData(){
         $fpsEmployees = FPSEmployeesResource::collection(
@@ -220,5 +355,72 @@ class HMRCRealTimeInformationController extends Controller
             ->orderBy('created_at', 'desc')->get()
         );
         return $fpsEmployees->toArray(request());
+    }
+
+    public function getEPSData(){
+        $hmrc_settings=HMRCSetting::first();
+        $eps_data=[
+            'SSP_Recovered' => '0.00',
+            'SMP_Recovered' => '0.00',
+            'SPP_Recovered' => '0.00',
+            'SAP_Recovered' => '0.00',
+            'ShPP_Recovered' => '0.00',
+            'NIC_CompensationOnSMP' => '0.00',
+            'NIC_CompensationOnSPP' => '0.00',
+            'NIC_CompensationOnSAP' => '0.00',
+            'NIC_CompensationOnShPP' => '0.00',
+            'CIS_DeductionsSuffered' => '0.00',
+            'NIC_sHoliday' => '0.00',
+            'final' =>[
+                'free_of_tax_payments' => '0.00',
+                'expenses_and_benefits' => '0.00',
+                'employees_out_of_uk' => '0.00',
+                'employees_pay_to_third_party' => '0.00',
+                'p11d_forms_due' => '0.00',
+                'service_company' => '0.00'
+            ]
+        ];
+
+        return $eps_data;
+    }
+
+    public function submitPayroll(Request $request){
+        $validator = Validator::make($request->all(), [
+            'payroll_id' => 'required',
+        ]);
+        if ($validator->fails())
+        {
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
+        }
+
+        $payroll=Payroll::with('payschedule')->find($request->payroll_id);
+        $res;
+        if($payroll){
+            $res=$this->submitFPS($payroll);
+        }
+
+        if(!$res['fps_submission_status']){
+            return response()->json(['FPS submission failed'], 500);
+        }
+
+        PayrollEmployee::where('payroll_id',$request->payroll_id)
+        ->update(['status' => 'history']);
+        $payroll_employees=PayrollEmployee::where('payroll_id',$request->payroll_id)->get();
+
+        if($payroll){
+            $payroll->status='history';
+            $payroll->save();
+        }
+
+        if($payroll_employees){
+            foreach($payroll_employees as $employee){
+                $payitem=EmployeePayItem::where('employee_id',$employee->employee_id)
+                ->where('payroll_id',$request->payroll_id)
+                ->where('status','draft')
+                ->update(['status' => 'history']);
+            }
+        }
+
+        return response()->json($res['request'], 200);
     }
 }

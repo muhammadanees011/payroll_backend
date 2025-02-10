@@ -35,6 +35,10 @@ class HMRCGatewayMessageRepository implements HMRCGatewayMessageInterface {
         $this->message_qualifier = $message_qualifier;
     }
 
+    public function message_qualifier_get() {
+        return $this->message_qualifier;
+    }
+
     public function message_function_set($message_function) {
         $this->message_function = $message_function;
     }

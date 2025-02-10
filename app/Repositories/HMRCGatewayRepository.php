@@ -17,7 +17,6 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
     protected $hmrc_RTI_FPS_Repository;
     protected $HMRC_RTI_Repository;
 
-    private $debug_irmark;
     private $log_db = NULL;
     private $log_table_sql = NULL;
     private $gateway_live = false;
@@ -38,6 +37,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
     private $response_qualifier = NULL;
     private $response_function = NULL;
     private $response_correlation = NULL;
+    private $filename = NULL;
 
     protected $details = [
         'year' => NULL,
@@ -72,6 +72,14 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
             'currency' => 'GBP',
             'sender' => 'Employer',
         ), $details);
+    }
+
+    public function filename_set($filename) {
+        $this->filename = $filename;
+    }
+
+    public function filename_get() {
+        return $this->filename;
     }
 
     public function message_keys_get() {
@@ -153,6 +161,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
                         'timeout' => (time() + $interval),
                         'status' => NULL,
                         'response' => NULL,
+                        'filename' => $this->filename_get(),
                     );
 
             } else {
@@ -186,7 +195,8 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
 
         //--------------------------------------------------
         // Send
-        $this->_send($message);
+        $res=$this->_send($message);
+        // return $res;
 
         //--------------------------------------------------
         // Extract requests
@@ -195,12 +205,12 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
 
             if (isset($this->response_object->Body->StatusReport)) {
                 foreach ($this->response_object->Body->StatusReport->StatusRecord as $request) {
-
+                    // return strval($request->TransactionID);
                     $requests[] = array(
                         'class' => $this->message_class,
-                        'correlation' => strval($request->CorrelationID),
-                        'transaction' => strval($request->TransactionID),
-                        'endpoint' => strval($this->response_object->Header->MessageDetails->ResponseEndPoint),
+                        'correlation' => (!is_null($request->CorrelationID) && !empty((array) $request->CorrelationID)) ? strval($request->CorrelationID) : null,
+                        'transaction' => (!is_null($request->TransactionID) && !empty((array) $request->TransactionID)) ? strval($request->TransactionID) : null,
+                        'endpoint' => strval($this->response_object->Header->MessageDetails->ResponseEndPoint->__text),
                         'timeout' => time(),
                         'status' => strval($request->Status),
                         'response' => NULL,
@@ -239,8 +249,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         //--------------------------------------------------
         // Send
             $res=$this->_send($message);
-            // return $this->debug_irmark;
-            return $this->response_object;
+            // return $this->response_object;
 
         //--------------------------------------------------
         // Result
@@ -274,20 +283,21 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
 
             } else if ($this->response_qualifier == 'response') {
 
-                $details = [];
-                if ($this->request_ref) {
-                    $details = $this->request_ref->response_details($this->response_object);
-                }
+                // $details = [];
+                // if ($this->request_ref) {
+                //     $details = $this->request_ref->response_details($this->response_object);
+                // }
 
                 return array(
                         'class' => $this->message_class,
                         'correlation' => $request['correlation'],
                         'transaction' => strval($this->response_object->Header->MessageDetails->TransactionID),
-                        'endpoint' => strval($this->response_object->Header->MessageDetails->ResponseEndPoint),
+                        'endpoint' => strval($this->response_object->Header->MessageDetails->ResponseEndPoint->__text),
                         'timeout' => time(),
                         'status' => 'SUBMISSION_RESPONSE',
                         'response' => $this->response_string,
-                        'response_details' => $details,
+                        'response_details' => $this->response_object->Header->MessageDetails,
+                        'filename' => $this->filename_get(),
                     );
 
             } else {
@@ -317,7 +327,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         // Send
 
         $this->_send($message);
-
+        // return $this->response_object;
         //--------------------------------------------------
         // Verify
 
@@ -360,7 +370,6 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
             $message_xml_dom = new DOMDocument;
             $message_xml_dom->loadXML($message_xml_clean);
             $message_irmark = base64_encode(sha1($message_xml_dom->documentElement->C14N(),true));
-            $this->debug_irmark=$message_irmark;
             $message_xml = str_replace($matches[0], $matches[1] . $message_irmark . $matches[2], $message_xml);
             // return $message_xml;
 
@@ -414,7 +423,20 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         $dom = new DOMDocument();
         $dom->loadXML($message_xml);        
         $message_xml = $dom->saveXML();
-        $dom->save("xml/fps.xml");
+        $timestamp = date('Ymd_His'); // Format: YYYYMMDD_HHMMSS
+        $randomString = bin2hex(random_bytes(5)); // Generate a random 5-byte (10-character) string
+        $message_repo = $this->hmrcGatewayMessageRepository;
+        $message_qualifier=$message_repo->message_qualifier_get();
+
+        if($message_qualifier == 'request' && ($this->message_class == 'HMRC-PAYE-RTI-FPS-TIL' || $this->message_class == 'HMRC-PAYE-RTI-FPS')){
+            $filename="xml/fps/fps_submitted_{$timestamp}_{$randomString}.xml";
+            $dom->save($filename);
+            $this->filename_set($filename);
+        }else if($message_qualifier == 'request' && ($this->message_class == 'HMRC-PAYE-RTI-EPS-TIL' || $this->message_class == 'HMRC-PAYE-RTI-EPS')){
+            $filename="xml/eps/eps_submitted_{$timestamp}_{$randomString}.xml";
+            $dom->save($filename);
+            $this->filename_set($filename);
+        }
 
         // echo $message_xml;
         // dd($message_xml);
@@ -433,21 +455,8 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         $this->response_object= $res_data;
 
         $this->response_debug = $this->gateway_url . "\n\n" . $message_xml . "\n\n" . $this->response_string;
-        // //--------------------------------------------------
-        // // Parse XML
-        // if (true) {
-        //     header('Content-Type: text/xml; charset=UTF-8');
-        //     exit($this->response_string);
-        // } else {
-        //     $dom_sxe = dom_import_simplexml($this->response_object);
-        //     $dom = new DOMDocument('1.0');
-        //     $dom_sxe = $dom->importNode($dom_sxe, true);
-        //     $dom_sxe = $dom->appendChild($dom_sxe);
-        //     $dom->preserveWhiteSpace = false;
-        //     $dom->formatOutput = true;
-        //     echo $dom->saveXML() . "\n--------------------------------------------------\n\n";
-        //     exit();
-        // }
+        
+
         //--------------------------------------------------
         // Update log
         $log->response_xml=$this->response_string;
@@ -455,6 +464,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
 
         //--------------------------------------------------
         // Extract details
+
         // return $this->response_object;
         if (isset($this->response_object->Header->MessageDetails->Qualifier)) {
             
@@ -469,8 +479,13 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
             exit_with_error('Invalid response from HMRC (function)', $this->response_debug);
         }
 
+
         if (isset($this->response_object->Header->MessageDetails->CorrelationID)) {
-            $this->response_correlation = strval($this->response_object->Header->MessageDetails->CorrelationID);
+            if (empty((array) $this->response_object->Header->MessageDetails->CorrelationID)) {
+                $this->response_correlation = null;
+            }else{
+                $this->response_correlation = strval($this->response_object->Header->MessageDetails->CorrelationID);
+            }
         } else {
             exit_with_error('Invalid response from HMRC (correlation)', $this->response_debug);
         }
@@ -482,15 +497,26 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         $log->response_correlation=$this->response_correlation;
         $log->save();
 
-        // if ($this->log_table_sql) {
+        //---------------------SAVE RESPONSE XML--------------------------
+        if($this->response_qualifier == 'response'){
+            $dom = new DOMDocument();
+            $dom->loadXML($this->response_string);        
+            $dom->saveXML();
+            $timestamp = date('Ymd_His'); // Format: YYYYMMDD_HHMMSS
+            $randomString = bin2hex(random_bytes(5)); // Generate a random 5-byte (10-character) string
+            $message_repo = $this->hmrcGatewayMessageRepository;
+            $message_qualifier=$message_repo->message_qualifier_get();
 
-        //     $this->log_db->update($this->log_table_sql, array(
-        //             'response_qualifier' => $this->response_qualifier,
-        //             'response_function' => $this->response_function,
-        //             'response_correlation' => $this->response_correlation,
-        //         ), $log_where_sql, $log_parameters);
-
-        // }
+            if($message_qualifier == 'poll' && ($this->message_class == 'HMRC-PAYE-RTI-FPS-TIL' || $this->message_class == 'HMRC-PAYE-RTI-FPS')){
+                $filename="xml/fps/fps_response_{$timestamp}_{$randomString}.xml";
+                $dom->save($filename);
+                $this->filename_set($filename);
+            }else if($message_qualifier == 'poll' && ($this->message_class == 'HMRC-PAYE-RTI-EPS-TIL' || $this->message_class == 'HMRC-PAYE-RTI-EPS')){
+                $filename="xml/eps/eps_response_{$timestamp}_{$randomString}.xml";
+                $dom->save($filename);
+                $this->filename_set($filename);
+            }
+        }
 
         //--------------------------------------------------
         // Check correlation

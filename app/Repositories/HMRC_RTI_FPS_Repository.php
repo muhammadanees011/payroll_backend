@@ -26,7 +26,7 @@ class HMRC_RTI_FPS_Repository implements HMRC_RTI_FPS_Interface {
 
     public function employee_add($employees) {
 
-        $this->employees[] =$employees;
+        $this->employees=$employees;
         //  array_merge(array(
         //         'national_insurance_number' => NULL,
         //         'name' => NULL,

@@ -70,6 +70,14 @@ class PayrollController extends Controller
         return response()->json($payrolls,200);
     }
 
+    public function archivedPayroll(){
+        $payrolls = PayrollResource::collection(
+            Payroll::with('payschedule')->where('status','archived')->orderBy('created_at', 'desc')->get()
+        );
+        return response()->json($payrolls,200);
+    }
+
+
     public function getPayrollDetail(Request $request){
         $payroll=Payroll::where('id',$request->payroll_id)->select('tax_period','pay_date')->first();
         return response()->json($payroll,200);
@@ -725,6 +733,13 @@ class PayrollController extends Controller
     }
 
     public function submitPayroll(Request $request){
+        $validator = Validator::make($request->all(), [
+            'payroll_id' => 'required',
+        ]);
+        if ($validator->fails())
+        {
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
+        }
 
         $payroll=Payroll::find($request->payroll_id);
         PayrollEmployee::where('payroll_id',$request->payroll_id)
@@ -746,6 +761,36 @@ class PayrollController extends Controller
         }
 
         return response()->json(['successfully submitted the fps'], 200);
+    }
+
+    public function archivePayroll(Request $request){
+        $validator = Validator::make($request->all(), [
+            'payroll_id' => 'required',
+        ]);
+        if ($validator->fails())
+        {
+            return response()->json(['errors'=>$validator->errors()->all()], 422);
+        }
+
+        $payroll=Payroll::find($request->payroll_id);
+        PayrollEmployee::where('payroll_id',$request->payroll_id)
+        ->update(['status' => 'archived']);
+        $payroll_employees=PayrollEmployee::where('payroll_id',$request->payroll_id)->get();
+
+        if($payroll){
+            $payroll->status='archived';
+            $payroll->save();
+        }
+
+        if($payroll_employees){
+            foreach($payroll_employees as $employee){
+                $payitem=EmployeePayItem::where('employee_id',$employee->employee_id)
+                ->where('payroll_id',$request->payroll_id)
+                ->update(['status' => 'archived']);
+            }
+        }
+
+        return response()->json(['successfully archived the payroll'], 200);
     }
 
 }

@@ -14,6 +14,9 @@ use App\Http\Controllers\EmployeeYearToDatesController;
 use App\Http\Controllers\EmployeeSickLeaveController;
 use App\Http\Controllers\EmployeeBankDetailsController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\EPSSubmissionController;
+use App\Http\Controllers\FPSSubmissionController;
+use App\Http\Controllers\P32TaxesFilingsController;
 use App\Http\Controllers\StudentLoanController;
 
 
@@ -30,7 +33,13 @@ Route::post('/set_new_password', [AuthController::class, 'set_new_password']);
 
 Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/logout', [AuthController::class,'logout']);
-    Route::get('/example-paye', [HMRCRealTimeInformationController::class, 'examplePaye']);
+    Route::get('/example-paye', [HMRCRealTimeInformationController::class, 'submitFPS']);
+    Route::post('/submitPayroll', [HMRCRealTimeInformationController::class, 'submitPayroll']);
+    Route::post('/submitEPS', [HMRCRealTimeInformationController::class, 'submitEPS']);
+    Route::get('/getEPSSubmissions', [EPSSubmissionController::class, 'getEPSSubmissions']);
+    Route::get('/getFPSSubmissions', [FPSSubmissionController::class, 'getFPSSubmissions']);
+    Route::post('/downloadFPSSubmissionFiles', [FPSSubmissionController::class, 'downloadFPSSubmissionFiles']);
+    Route::post('/downloadEPSSubmissionFiles', [EPSSubmissionController::class, 'downloadEPSSubmissionFiles']);
 
     //-------------COMPANY------------
     Route::post('/create-company', [CompanyController::class, 'createCompany']);
@@ -110,6 +119,7 @@ Route::group(['middleware' => 'auth:api'], function () {
 
     Route::get('/activePayroll', [PayrollController::class, 'activePayroll']);
     Route::get('/historyPayroll', [PayrollController::class, 'historyPayroll']);
+    Route::get('/archivedPayroll', [PayrollController::class, 'archivedPayroll']);
     Route::post('/getPayrollDetail', [PayrollController::class, 'getPayrollDetail']);
     Route::post('/salariedEmployees', [PayrollController::class, 'salariedEmployees']);
     Route::get('/inputHours/{id?}', [PayrollController::class, 'inputHours']);
@@ -129,6 +139,8 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/downloadEmployeePayslip/{id?}', [PayrollController::class, 'downloadEmployeePayslip']);
     Route::get('/deleteEmployeePayslip/{id?}', [PayrollController::class, 'deleteEmployeePayslip']);
     Route::get('/downloadAllPayslips/{id?}', [PayrollController::class, 'downloadAllPayslips']);
-    Route::post('/submitPayroll', [PayrollController::class, 'submitPayroll']);
+    Route::post('/archivePayroll', [PayrollController::class, 'archivePayroll']);
+
+    Route::post('/getP32TaxesFilings', [P32TaxesFilingsController::class, 'getP32TaxesFilings']);
 
 });
