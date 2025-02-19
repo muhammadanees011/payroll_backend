@@ -33,6 +33,11 @@ return new class extends Migration
             $table->double('pg_loan')->nullable();
             $table->double('sick_pay')->nullable();
             $table->double('paternity_pay')->nullable();
+            $table->double('maternity_pay')->nullable();
+            $table->double('adoption_pay')->nullable();
+            $table->double('shared_parental_pay')->nullable();
+            $table->double('parental_bereavement_pay')->nullable();
+
             $table->enum('salary_type',['Salaried','Hourly']);
             $table->enum('status',['active','archived','history'])->default('active');
             $table->timestamps();

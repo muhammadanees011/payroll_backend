@@ -9,6 +9,7 @@ class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
     private $employees = [];
     private $details;
     private $eps_data;
+    private $allowance_indicator=null;
 
     public function message_class_get() {
         return 'HMRC-PAYE-RTI-EPS';
@@ -25,6 +26,10 @@ class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
 
     public function data_set($data){
         $this->eps_data=$data;
+    }
+
+    public function allowance_indicator_set($isAllowanceIndicator){
+        $this->allowance_indicator=$isAllowanceIndicator;
     }
 
     public function request_body_get_xml() {
@@ -81,6 +86,10 @@ class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
             $xml .= '
                         <NoPaymentForPeriod>yes</NoPaymentForPeriod>'; // No payment due, as no employees paid in this pay period.
 
+        }else if ($this->allowance_indicator!=null &&  ($this->allowance_indicator==true || $this->allowance_indicator==false)) {
+
+            $xml .= '
+                        <EmploymentAllowanceIndicator>'. xml($this->allowance_indicator ? 'true':'false') .'</EmploymentAllowanceIndicator>'; // Means that the employer is claiming/not claiming Employment Allowance (EA) for the current tax year.
         } else {
 
             $xml .= '
@@ -103,6 +112,11 @@ class HMRC_RTI_EPS_Repository implements HMRC_RTI_EPS_Interface {
         // 	<TaxMonth>3</TaxMonth>
         // 	<AnnualAllce>15000.00</AnnualAllce>
         // </ApprenticeshipLevy>
+
+
+        // <CISDeductions>
+        //     <CISDeductionIndicator>false</CISDeductionIndicator>
+        // </CISDeductions>
 
         $xml .= '
                         <RelatedTaxYear>' . xml($period_range) . '</RelatedTaxYear>';

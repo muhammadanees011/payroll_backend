@@ -30,6 +30,7 @@ return new class extends Migration
             $table->boolean('is_first_payday_of_year')->nullable();
             $table->boolean('is_first_payroll_of_company')->nullable();
             $table->string('payroll_provider')->nullable();
+            $table->boolean('small_employer_relief_eligible')->default(false);
             $table->integer('step')->default(0);
             $table->timestamps();
         });

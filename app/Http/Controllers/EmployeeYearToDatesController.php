@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\EmployeeYearToDates;
 use App\Models\PayrollEmployee;
+use App\Models\P32TaxesFilings;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use App\Services\NICCalculator;
 
 class EmployeeYearToDatesController extends Controller
@@ -214,6 +216,62 @@ class EmployeeYearToDatesController extends Controller
             
         }
 
+        $this->savePaySummary($request->payschedule_id);
         return response()->json('saved',200);
     }
+
+
+    public function savePaySummary($payschedule_id)
+    {
+        $employees = PayrollEmployee::with('employee', 'employementdetail', 'payroll', 'payschedule')
+        ->where('pay_schedule_id', $payschedule_id)
+        ->get();
+
+        if($employees){
+            $startDate=$employees[0]->payroll->pay_run_start_date;
+            $endDate=$employees[0]->payroll->pay_run_end_date;
+        }else{
+            return;
+        }
+
+        $taxMonth=$this->getTaxMonthNumber($startDate, $endDate);
+
+        $p32taxesfilings = P32TaxesFilings::where('tax_month',$taxMonth)->first();
+        $p32taxesfilings->claimed_employment_allowance += 5000;
+
+        foreach ($employees as $employee) {
+            //----------
+            $p32taxesfilings->total_paye += 
+            $employee->paye_income_tax
+            + $employee->employee_nic 
+            + $employee->employer_nic 
+            + $employee->student_loan 
+            + $employee->pg_loan;
+            //-------------
+            $p32taxesfilings->gross_national_insurance += $employee->employee_nic + $employee->employer_nic;
+            //------------
+            $p32taxesfilings->total_statutory_recoveries += $employee->paternity_pay;
+
+            $p32taxesfilings->save();
+
+        }
+
+        $p32taxesfilings->amount_due = $p32taxesfilings->claimed_employment_allowance;
+        $p32taxesfilings->save();
+    }
+
+    function getTaxMonthNumber($startDate, $endDate) {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        // Tax year starts on April 6
+        $taxYearStart = Carbon::create($start->year, 4, 6);
+        // If the start date is before April 6, adjust to the previous tax year
+        if ($start->lessThan($taxYearStart)) {
+            $taxYearStart->subYear();
+        }
+        // Calculate the tax month based on the start date
+        $taxMonth = floor($taxYearStart->diffInDays($start) / 30.4375) + 1;
+        return min(max(1, (int)$taxMonth), 12); // Ensure it's between 1 and 12
+    }
+    
 }

@@ -249,8 +249,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         //--------------------------------------------------
         // Send
             $res=$this->_send($message);
-            // return $this->response_object;
-
+            return $this->response_object;
         //--------------------------------------------------
         // Result
 
@@ -442,6 +441,7 @@ class HMRCGatewayRepository implements HMRCGatewayInterface {
         // dd($message_xml);
 
         $send_result = $connection->post($this->gateway_url, $message_xml);
+        // return $send_result;
         if (!$send_result) {
             exit_with_error('Could not connect to HMRC', $connection->error_message_get() . "\n\n" . $connection->error_details_get());
         }

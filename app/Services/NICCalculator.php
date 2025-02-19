@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Services;
+use App\Models\Company;
 
 class NICCalculator
 {
@@ -197,5 +198,22 @@ class NICCalculator
         }else{
             return 0;
         }
+    }
+
+    public function calculateApprenticeshipLevy($totalPayBill)
+    {
+        $threshold = 3000000; // £3,000,000 threshold
+        $rate = 0.005; // 0.5%
+        
+        // Calculate levy only if total pay bill exceeds £3M
+        return max(0, ($totalPayBill - $threshold) * $rate);
+    }
+
+    
+    public function calculateNicCompensationOnStatutory($smp_paid)
+    {
+        $company=Company::first();
+        $ser_eligible= $company->small_employer_relief_eligible; //Small Employers’ Relief 
+        return $ser_eligible ? ($smp_paid * 1.03) : ($smp_paid * 0.92);
     }
 }

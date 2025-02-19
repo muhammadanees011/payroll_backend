@@ -8,6 +8,7 @@ use App\Repositories\Interfaces\HMRCGatewayMessageInterface;
 use App\Repositories\Interfaces\HMRC_RTI_FPS_Interface;
 use App\Repositories\Interfaces\HMRC_RTI_EPS_Interface;
 use App\Repositories\Interfaces\HMRC_RTI_Interface;
+use App\Repositories\Interfaces\RealTimeInformationInterface;
 use App\Models\RTILog;
 use App\Http\Resources\FPSEmployeesResource;
 use App\Models\PayrollEmployee;
@@ -26,6 +27,7 @@ class HMRCRealTimeInformationController extends Controller
     private $HMRC_RTI_FPS_Repository;
     private $HMRC_RTI_EPS_Repository;
     private $HMRC_RTI_Repository;
+    private $RealTimeInformationRepository;
 
     private $config_sender_name = 'ISV635';
 	private $config_sender_pass = 'fGuR34fAOEJf';
@@ -40,13 +42,15 @@ class HMRCRealTimeInformationController extends Controller
     HMRCGatewayMessageInterface $hmrcGatewayMessageRepository,
     HMRC_RTI_FPS_Interface $HMRC_RTI_FPS_Repository,
     HMRC_RTI_EPS_Interface $HMRC_RTI_EPS_Repository,
-    HMRC_RTI_Interface $HMRC_RTI_Repository
+    HMRC_RTI_Interface $HMRC_RTI_Repository,
+    RealTimeInformationInterface $RealTimeInformationRepository,
      ) {
         $this->hmrcGatewayRepository = $hmrcGatewayRepository;
         $this->hmrcGatewayMessageRepository = $hmrcGatewayMessageRepository;
         $this->HMRC_RTI_FPS_Repository = $HMRC_RTI_FPS_Repository;
         $this->HMRC_RTI_EPS_Repository = $HMRC_RTI_EPS_Repository;
         $this->HMRC_RTI_Repository = $HMRC_RTI_Repository;
+        $this->RealTimeInformationRepository = $RealTimeInformationRepository;
     }
 
     public function submitFPS($payroll){
@@ -217,6 +221,7 @@ class HMRCRealTimeInformationController extends Controller
                 $fps_status=true;
                 $FPSSubmission->response_xml=$request['filename'];
                 $FPSSubmission->save();
+                $this->RealTimeInformationRepository->scheduleEPSSubmission($payroll);
                 return [
                     'request' => $request,
                     'fps_submission_status'  => $fps_status
@@ -258,6 +263,11 @@ class HMRCRealTimeInformationController extends Controller
         // 		'correlation' => 'DF64ED198BEB43178A0C6A3CCE7D389C',
         // 	]);
 
+    }
+
+    public function submitScheduledEPS(){
+        $result=$this->RealTimeInformationRepository->handleEPSSubmission();
+        return $result;
     }
 
     public function submitEPS(Request $request){

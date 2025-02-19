@@ -41,6 +41,15 @@ return new class extends Migration
 
             $table->double('total_payroll_cost')->nullable();
             $table->integer('total_employees')->nullable();
+
+            $table->double('apprentice_levy')->nullable();
+            $table->double('cis_deduction')->nullable();
+
+            $table->double('statutory_maternity_pay')->nullable();
+            $table->double('statutory_paternity_pay')->nullable();
+            $table->double('statutory_adoption_pay')->nullable();
+            $table->double('statutory_shared_parental_pay')->nullable();
+
             $table->enum('status',['active','history','draft','archived']);
             $table->timestamps();
         });

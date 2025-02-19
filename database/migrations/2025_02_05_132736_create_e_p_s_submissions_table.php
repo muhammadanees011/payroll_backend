@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('submission_date')->nullable();
             $table->string('submission_xml')->nullable();
             $table->string('response_xml')->nullable();
-            $table->enum('type',['Bank Detail Submission','No Payment Submission']);
+            $table->enum('type',['Recoverable Amounts','Bank Detail Submission','No Payment Submission']);
             $table->enum('status',['Pending','Failed','Accepted','Rejected']);
             $table->timestamps();
         });

@@ -18,6 +18,7 @@ use App\Http\Controllers\EPSSubmissionController;
 use App\Http\Controllers\FPSSubmissionController;
 use App\Http\Controllers\P32TaxesFilingsController;
 use App\Http\Controllers\StudentLoanController;
+use App\Http\Controllers\UserController;
 
 
 Route::post('/register', [AuthController::class,'register']);
@@ -36,6 +37,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/example-paye', [HMRCRealTimeInformationController::class, 'submitFPS']);
     Route::post('/submitPayroll', [HMRCRealTimeInformationController::class, 'submitPayroll']);
     Route::post('/submitEPS', [HMRCRealTimeInformationController::class, 'submitEPS']);
+    Route::get('/submitScheduledEPS', [HMRCRealTimeInformationController::class, 'submitScheduledEPS']);
     Route::get('/getEPSSubmissions', [EPSSubmissionController::class, 'getEPSSubmissions']);
     Route::get('/getFPSSubmissions', [FPSSubmissionController::class, 'getFPSSubmissions']);
     Route::post('/downloadFPSSubmissionFiles', [FPSSubmissionController::class, 'downloadFPSSubmissionFiles']);
@@ -142,5 +144,9 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/archivePayroll', [PayrollController::class, 'archivePayroll']);
 
     Route::post('/getP32TaxesFilings', [P32TaxesFilingsController::class, 'getP32TaxesFilings']);
+
+    //------Users----------
+    Route::get('/getAllUsers', [UserController::class, 'index']);
+    Route::post('/storeUser', [UserController::class, 'store']);
 
 });
