@@ -23,7 +23,7 @@ class StudentLoanPaymentPlanSeeder extends Seeder
                 'fortnightly_threshold' => 24990.00/26,
                 'fourweekly_threshold' => 24990.00/13,
                 'repay_percentage' => 9,
-                'status' => 'student_loan'
+                'type' => 'student_loan'
             ],
             [
                 'payment_plan' => 'Student Loan Repayment - Plan 2',
@@ -34,7 +34,7 @@ class StudentLoanPaymentPlanSeeder extends Seeder
                 'fortnightly_threshold' => 27295.00/26,
                 'fourweekly_threshold' => 27295.00/13,
                 'repay_percentage' => 9,
-                'status' => 'student_loan'
+                'type' => 'student_loan'
             ],
             [
                 'payment_plan' => 'Student Loan Repayment - Postgraduate',
@@ -45,7 +45,7 @@ class StudentLoanPaymentPlanSeeder extends Seeder
                 'fortnightly_threshold' => 21000.00/26,
                 'fourweekly_threshold' => 21000.00/13,
                 'repay_percentage' => 6,
-                'status' => 'pg_loan'
+                'type' => 'pg_loan'
             ],
             [
                 'payment_plan' => 'Student Loan Repayment - Plan 4',
@@ -56,7 +56,7 @@ class StudentLoanPaymentPlanSeeder extends Seeder
                 'fortnightly_threshold' => 31395.00/26,
                 'fourweekly_threshold' => 31395.00/13,
                 'repay_percentage' => 9,
-                'status' => 'student_loan'
+                'type' => 'student_loan'
             ]
         ];
 
